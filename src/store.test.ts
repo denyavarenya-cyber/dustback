@@ -20,6 +20,11 @@ jest.mock('./core/price', () => ({
   fetchDustQuotes: jest.fn(),
 }));
 
+jest.mock('./core/wallet', () => ({
+  connect: jest.fn(),
+  signAndSendTransactions: jest.fn(),
+}));
+
 import {
   fetchDustQuotes,
   getSolPriceUsd,

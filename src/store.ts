@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { create } from 'zustand';
-import { RPC_URL } from './config';
+import { FEE_BPS, FEE_WALLET, RPC_URL } from './config';
 import {
   classifyDust,
   fetchDustQuotes,
@@ -11,10 +11,17 @@ import {
   selectQuoteTargets,
 } from './core/price';
 import { EmptyAccount, scanWallet } from './core/scan';
+import { buildCloseTransactions, SweepSummary } from './core/sweep';
+import {
+  connect,
+  signAndSendTransactions,
+  WalletSession,
+} from './core/wallet';
 
 const LAST_ADDRESS_KEY = 'sweeper:lastAddress';
 
 export interface ScanResults {
+  owner: string;
   emptyAccounts: EmptyAccount[];
   priced: PricedBalance[];
   solPriceUsd: number | null;
@@ -25,6 +32,11 @@ export interface QuoteProgress {
   total: number;
 }
 
+export interface SweepReceipt {
+  signatures: string[];
+  summary: SweepSummary;
+}
+
 interface SweeperState {
   address: string;
   loading: boolean;
@@ -32,9 +44,17 @@ interface SweeperState {
   results: ScanResults | null;
   scanId: number;
   quoteProgress: QuoteProgress | null;
+  wallet: WalletSession | null;
+  connectError: string | null;
+  sweeping: boolean;
+  sweepError: string | null;
+  lastSweep: SweepReceipt | null;
   setAddress: (address: string) => void;
   restoreAddress: () => Promise<void>;
   scan: () => Promise<void>;
+  connectWallet: () => Promise<void>;
+  scanConnectedWallet: () => Promise<void>;
+  sweepRent: () => Promise<void>;
   reset: () => void;
 }
 
@@ -47,6 +67,11 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
   results: null,
   scanId: 0,
   quoteProgress: null,
+  wallet: null,
+  connectError: null,
+  sweeping: false,
+  sweepError: null,
+  lastSweep: null,
 
   setAddress: (address) => set({ address }),
 
@@ -94,6 +119,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       });
       set({
         results: {
+          owner: owner.toBase58(),
           emptyAccounts: scan.emptyAccounts,
           priced: marked,
           solPriceUsd,
@@ -135,12 +161,79 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
     }
   },
 
+  connectWallet: async () => {
+    set({ connectError: null });
+    try {
+      const result = await connect();
+      if (result.status === 'connected') {
+        set({ wallet: result.session });
+      } else if (result.status === 'no-wallet') {
+        set({ connectError: 'No compatible wallet app installed' });
+      }
+      // cancelled: stay on the form silently
+    } catch (e) {
+      set({
+        connectError: e instanceof Error ? e.message : 'Connect failed',
+      });
+    }
+  },
+
+  scanConnectedWallet: async () => {
+    const wallet = get().wallet;
+    if (!wallet) return;
+    set({ address: wallet.address });
+    await get().scan();
+  },
+
+  sweepRent: async () => {
+    const { wallet, results } = get();
+    if (!wallet || !results || results.emptyAccounts.length === 0) return;
+    if (results.owner !== wallet.address) {
+      set({ sweepError: 'Scanned address is not the connected wallet' });
+      return;
+    }
+
+    set({ sweeping: true, sweepError: null, lastSweep: null });
+    try {
+      const owner = new PublicKey(wallet.address);
+      const feeWallet = FEE_WALLET ? new PublicKey(FEE_WALLET) : owner;
+      const { transactions, summary } = buildCloseTransactions(
+        results.emptyAccounts,
+        owner,
+        feeWallet,
+        FEE_BPS
+      );
+      const connection = new Connection(RPC_URL, 'confirmed');
+      const { blockhash } = await connection.getLatestBlockhash();
+      for (const tx of transactions) tx.recentBlockhash = blockhash;
+
+      const { signatures, session } = await signAndSendTransactions(
+        wallet,
+        transactions
+      );
+      set({
+        sweeping: false,
+        wallet: session,
+        lastSweep: { signatures, summary },
+        address: results.owner,
+      });
+      await get().scan();
+    } catch (e) {
+      set({
+        sweeping: false,
+        sweepError: e instanceof Error ? e.message : 'Sweep failed',
+      });
+    }
+  },
+
   reset: () => {
     quoteAbort?.abort();
     set((state) => ({
       results: null,
       error: null,
       quoteProgress: null,
+      sweepError: null,
+      lastSweep: null,
       scanId: state.scanId + 1,
     }));
   },

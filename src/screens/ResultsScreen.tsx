@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Button, FlatList, Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Button,
+  FlatList,
+  Linking,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import { DUST_THRESHOLD_USD } from '../config';
 import {
   classifyDust,
@@ -60,6 +68,11 @@ export default function ResultsScreen() {
   const results = useSweeperStore((s) => s.results);
   const onBack = useSweeperStore((s) => s.reset);
   const quoteProgress = useSweeperStore((s) => s.quoteProgress);
+  const wallet = useSweeperStore((s) => s.wallet);
+  const sweeping = useSweeperStore((s) => s.sweeping);
+  const sweepError = useSweeperStore((s) => s.sweepError);
+  const lastSweep = useSweeperStore((s) => s.lastSweep);
+  const sweepRent = useSweeperStore((s) => s.sweepRent);
   const priced = results?.priced ?? NO_PRICED;
   const { dust, noMarket } = useMemo(
     () => classifyDust(priced, DUST_THRESHOLD_USD),
@@ -78,6 +91,12 @@ export default function ResultsScreen() {
       else next.add(pubkey);
       return next;
     });
+
+  const canSweep =
+    wallet !== null &&
+    wallet.address === results.owner &&
+    includeEmpty &&
+    emptyAccounts.length > 0;
 
   const rentSol = totalRecoverableLamports(emptyAccounts) / 1e9;
   const rentUsd = solPriceUsd === null ? null : rentSol * solPriceUsd;
@@ -155,6 +174,38 @@ export default function ResultsScreen() {
               {noMarket.length}{' '}
               {noMarket.length === 1 ? 'token' : 'tokens'} without a market
             </Text>
+          )}
+          {canSweep && (
+            <View style={{ marginTop: 24 }}>
+              <Button
+                title="Sweep rent only"
+                onPress={sweepRent}
+                disabled={sweeping}
+              />
+            </View>
+          )}
+          {sweeping && <ActivityIndicator style={{ marginTop: 16 }} />}
+          {sweepError && (
+            <Text style={{ color: 'red', marginTop: 16 }}>{sweepError}</Text>
+          )}
+          {lastSweep && (
+            <View style={{ marginTop: 16 }}>
+              <Text style={{ fontWeight: 'bold' }}>
+                Closed {lastSweep.summary.accountsClosed} accounts — you
+                received{' '}
+                {formatSol(lastSweep.summary.userReceivesLamports / 1e9)}, fee{' '}
+                {formatSol(lastSweep.summary.feeLamports / 1e9)}
+              </Text>
+              {lastSweep.signatures.map((sig) => (
+                <Text
+                  key={sig}
+                  style={{ color: '#36c', marginTop: 4, fontSize: 12 }}
+                  onPress={() => Linking.openURL(`https://solscan.io/tx/${sig}`)}
+                >
+                  solscan.io/tx/{shortenMint(sig)}
+                </Text>
+              ))}
+            </View>
           )}
           <View style={{ marginTop: 24, marginBottom: 16 }}>
             <Button title="Back to scan" onPress={onBack} />

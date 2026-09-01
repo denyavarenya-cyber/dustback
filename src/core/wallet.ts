@@ -54,23 +54,71 @@ export async function connect(): Promise<ConnectResult> {
   }
 }
 
+export type SignFailure = 'declined' | 'session';
+
+export class WalletSignError extends Error {
+  constructor(
+    public readonly kind: SignFailure,
+    message: string
+  ) {
+    super(message);
+    this.name = 'WalletSignError';
+  }
+}
+
+function classifySignFailure(e: unknown): SignFailure | null {
+  const code = (e as { code?: unknown } | null)?.code;
+  const message = e instanceof Error ? e.message : '';
+  if (
+    code === -1 || // ERROR_AUTHORIZATION_FAILED: user declined authorization
+    code === -3 || // ERROR_NOT_SIGNED: user declined signing
+    code === 'ERROR_NOT_SIGNED'
+  ) {
+    return 'declined';
+  }
+  if (
+    code === 'ERROR_SESSION_CLOSED' ||
+    code === 'ERROR_SESSION_TIMEOUT' ||
+    code === 'ERROR_ASSOCIATION_CANCELLED' ||
+    message.includes('CancellationException')
+  ) {
+    return 'session';
+  }
+  return null;
+}
+
 export async function signAndSendTransactions(
   session: WalletSession,
   transactions: Transaction[]
 ): Promise<{ signatures: string[]; session: WalletSession }> {
-  return transact(async (wallet) => {
-    const auth = await wallet.authorize({
-      identity: APP_IDENTITY,
-      chain: CHAIN,
-      auth_token: session.authToken,
+  try {
+    return await transact(async (wallet) => {
+      const auth = await wallet
+        .reauthorize({ auth_token: session.authToken, identity: APP_IDENTITY })
+        .catch(() =>
+          // stale or invalidated token: fresh authorization in the same session
+          wallet.authorize({ identity: APP_IDENTITY, chain: CHAIN })
+        );
+      const signatures = await wallet.signAndSendTransactions({ transactions });
+      return {
+        signatures,
+        session: {
+          address: base64AddressToBase58(auth.accounts[0].address),
+          authToken: auth.auth_token,
+        },
+      };
     });
-    const signatures = await wallet.signAndSendTransactions({ transactions });
-    return {
-      signatures,
-      session: {
-        address: base64AddressToBase58(auth.accounts[0].address),
-        authToken: auth.auth_token,
-      },
-    };
-  });
+  } catch (e) {
+    const kind = classifySignFailure(e);
+    if (kind === 'declined') {
+      throw new WalletSignError('declined', 'Request declined in wallet');
+    }
+    if (kind === 'session') {
+      throw new WalletSignError(
+        'session',
+        'Wallet session failed — reconnect and try again'
+      );
+    }
+    throw e;
+  }
 }

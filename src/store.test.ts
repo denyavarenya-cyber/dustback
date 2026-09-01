@@ -25,6 +25,16 @@ jest.mock('./core/wallet', () => ({
   signAndSendTransactions: jest.fn(),
 }));
 
+jest.mock('./core/swap', () => ({
+  ...jest.requireActual('./core/swap'),
+  buildSweepPlan: jest.fn(),
+}));
+
+jest.mock('./core/sweep', () => ({
+  ...jest.requireActual('./core/sweep'),
+  waitForSignatureOutcomes: jest.fn(),
+}));
+
 jest.mock('@solana/web3.js', () => {
   const actual = jest.requireActual('@solana/web3.js');
   const connectionMock = {
@@ -49,13 +59,16 @@ const connectionMock = (
   }
 ).__connectionMock;
 
+import { Transaction } from '@solana/web3.js';
 import {
   fetchDustQuotes,
   getSolPriceUsd,
   PricedBalance,
   priceTokens,
 } from './core/price';
-import { scanWallet, ScanResult } from './core/scan';
+import { EmptyAccount, scanWallet, ScanResult } from './core/scan';
+import { waitForSignatureOutcomes } from './core/sweep';
+import { buildSweepPlan, PlannedTransaction, SweepPlan } from './core/swap';
 import { signAndSendTransactions } from './core/wallet';
 import { useSweeperStore } from './store';
 
@@ -69,6 +82,12 @@ const mockFetchDustQuotes = fetchDustQuotes as jest.MockedFunction<
 >;
 const mockSignAndSend = signAndSendTransactions as jest.MockedFunction<
   typeof signAndSendTransactions
+>;
+const mockBuildSweepPlan = buildSweepPlan as jest.MockedFunction<
+  typeof buildSweepPlan
+>;
+const mockWaitOutcomes = waitForSignatureOutcomes as jest.MockedFunction<
+  typeof waitForSignatureOutcomes
 >;
 
 const ADDRESS = PublicKey.unique().toBase58();
@@ -233,5 +252,274 @@ describe('scan pipeline', () => {
 
     quotes.resolve();
     await scanPromise;
+  });
+});
+
+const OWNER_B58 = PublicKey.unique().toBase58();
+const RENT = 2039280;
+
+function emptyAccount(lamports = RENT): EmptyAccount {
+  return { pubkey: PublicKey.unique().toBase58(), program: 'token', lamports };
+}
+
+function swapItem(mint: string, quotedSolOut: number): PlannedTransaction {
+  return {
+    kind: 'swap',
+    mint,
+    pubkey: `acct-${mint}`,
+    amountRaw: '1000',
+    decimals: 6,
+    quotedSolOut,
+    transaction: {} as never,
+  };
+}
+
+function closesItem(
+  accounts: EmptyAccount[],
+  includesFee: boolean
+): PlannedTransaction {
+  return {
+    kind: 'closes',
+    emptyAccounts: accounts,
+    rentLamports: accounts.reduce((s, a) => s + a.lamports, 0),
+    includesFee,
+    transaction: new Transaction(),
+  };
+}
+
+function feeItem(): PlannedTransaction {
+  return { kind: 'fee', transaction: new Transaction() };
+}
+
+function makePlan(transactions: PlannedTransaction[]): SweepPlan {
+  const swaps = transactions.filter(
+    (t): t is Extract<PlannedTransaction, { kind: 'swap' }> =>
+      t.kind === 'swap'
+  );
+  const closes = transactions.filter(
+    (t): t is Extract<PlannedTransaction, { kind: 'closes' }> =>
+      t.kind === 'closes'
+  );
+  const quoted = swaps.reduce((s, t) => s + t.quotedSolOut, 0);
+  const rent = closes.reduce((s, t) => s + t.rentLamports, 0);
+  const fee = Math.floor(((quoted + rent) * 800) / 10000);
+  return {
+    transactions,
+    skippedTokens: [],
+    summary: {
+      accountsClosed: closes.reduce((s, t) => s + t.emptyAccounts.length, 0),
+      tokensSwapped: swaps.length,
+      quotedSolOutLamports: quoted,
+      rentLamports: rent,
+      feeLamports: fee,
+      userReceivesLamports: quoted + rent - fee,
+      usdEstimate: null,
+    },
+  };
+}
+
+function seedPlan(plan: SweepPlan) {
+  useSweeperStore.setState({
+    view: 'review',
+    wallet: { address: OWNER_B58, authToken: 'token-1' },
+    results: {
+      owner: OWNER_B58,
+      emptyAccounts: [],
+      priced: [],
+      solPriceUsd: 100,
+    },
+    plan,
+  });
+  connectionMock.getLatestBlockhash.mockResolvedValue({
+    blockhash: PublicKey.unique().toBase58(),
+    lastValidBlockHeight: 1,
+  });
+  connectionMock.simulateTransaction.mockResolvedValue({
+    value: { err: null, logs: [] },
+  });
+  mockSignAndSend.mockImplementation(async (_session, txs) => ({
+    signatures: txs.map((_, i) => `sig${i}`),
+    session: { address: OWNER_B58, authToken: 'token-2' },
+  }));
+  mockWaitOutcomes.mockImplementation(async (_c, sigs) =>
+    sigs.map(() => 'confirmed' as const)
+  );
+}
+
+describe('confirmSweep', () => {
+  it('mixed batch all success: honest outcome and fee accounting', async () => {
+    const plan = makePlan([
+      swapItem('mintA', 10000),
+      closesItem([emptyAccount()], true),
+    ]);
+    seedPlan(plan);
+    await useSweeperStore.getState().confirmSweep();
+
+    const state = useSweeperStore.getState();
+    expect(state.view).toBe('done');
+    expect(state.plan).toBeNull();
+    expect(state.wallet?.authToken).toBe('token-2');
+    const fee = plan.summary.feeLamports;
+    expect(state.outcome).toMatchObject({
+      swappedCount: 1,
+      totalSwaps: 1,
+      closedAccounts: 1,
+      totalAccounts: 1,
+      recoveredLamports: 10000 + RENT - fee,
+      feeTaken: true,
+      feeLamports: fee,
+    });
+    expect(state.outcome!.items.map((i) => i.status)).toEqual([
+      'confirmed',
+      'confirmed',
+    ]);
+    expect(state.outcome!.usdEstimate).toBeCloseTo(
+      ((10000 + RENT - fee) / 1e9) * 100
+    );
+  });
+
+  it('one swap fails mid-batch: the rest still count', async () => {
+    const plan = makePlan([
+      swapItem('mintA', 10000),
+      swapItem('mintB', 20000),
+      closesItem([emptyAccount()], true),
+    ]);
+    seedPlan(plan);
+    mockWaitOutcomes.mockResolvedValue(['confirmed', 'failed', 'confirmed']);
+
+    await useSweeperStore.getState().confirmSweep();
+
+    const state = useSweeperStore.getState();
+    expect(state.view).toBe('done');
+    const fee = plan.summary.feeLamports;
+    expect(state.outcome).toMatchObject({
+      swappedCount: 1,
+      totalSwaps: 2,
+      closedAccounts: 1,
+      recoveredLamports: 10000 + RENT - fee,
+      feeTaken: true,
+    });
+    expect(state.outcome!.items.map((i) => i.status)).toEqual([
+      'confirmed',
+      'failed',
+      'confirmed',
+    ]);
+  });
+
+  it('swap timeout: reported as not swapped', async () => {
+    const plan = makePlan([
+      swapItem('mintA', 10000),
+      closesItem([emptyAccount()], true),
+    ]);
+    seedPlan(plan);
+    mockWaitOutcomes.mockResolvedValue(['timeout', 'confirmed']);
+
+    await useSweeperStore.getState().confirmSweep();
+
+    const outcome = useSweeperStore.getState().outcome!;
+    expect(outcome.swappedCount).toBe(0);
+    expect(outcome.recoveredLamports).toBe(RENT - plan.summary.feeLamports);
+    expect(outcome.items[0].status).toBe('timeout');
+  });
+
+  it('closes-only selection', async () => {
+    const plan = makePlan([
+      closesItem([emptyAccount(), emptyAccount()], true),
+    ]);
+    seedPlan(plan);
+
+    await useSweeperStore.getState().confirmSweep();
+
+    const outcome = useSweeperStore.getState().outcome!;
+    expect(outcome).toMatchObject({
+      swappedCount: 0,
+      totalSwaps: 0,
+      closedAccounts: 2,
+      recoveredLamports: 2 * RENT - plan.summary.feeLamports,
+      feeTaken: true,
+    });
+  });
+
+  it('swaps-only: failed standalone fee tx means no fee taken', async () => {
+    const plan = makePlan([swapItem('mintA', 10000), feeItem()]);
+    seedPlan(plan);
+    mockWaitOutcomes.mockResolvedValue(['confirmed', 'failed']);
+
+    await useSweeperStore.getState().confirmSweep();
+
+    const outcome = useSweeperStore.getState().outcome!;
+    expect(outcome).toMatchObject({
+      swappedCount: 1,
+      recoveredLamports: 10000,
+      feeTaken: false,
+    });
+  });
+
+  it('blocks the wallet on simulation failure and stays on review', async () => {
+    const plan = makePlan([closesItem([emptyAccount()], true)]);
+    seedPlan(plan);
+    connectionMock.simulateTransaction.mockResolvedValue({
+      value: {
+        err: { InsufficientFundsForRent: { account_index: 2 } },
+        logs: [],
+      },
+    });
+
+    await useSweeperStore.getState().confirmSweep();
+
+    const state = useSweeperStore.getState();
+    expect(state.view).toBe('review');
+    expect(state.sweepError).toMatch(/fee wallet not rent-exempt/);
+    expect(state.executing).toBe(false);
+    expect(mockSignAndSend).not.toHaveBeenCalled();
+    expect(state.outcome).toBeNull();
+  });
+
+  it('sends transactions to the wallet in plan order', async () => {
+    const plan = makePlan([
+      swapItem('mintA', 10000),
+      closesItem([emptyAccount()], true),
+    ]);
+    seedPlan(plan);
+    await useSweeperStore.getState().confirmSweep();
+
+    const sent = mockSignAndSend.mock.calls[0][1];
+    expect(sent).toEqual(plan.transactions.map((t) => t.transaction));
+  });
+});
+
+describe('startReview', () => {
+  it('discards a plan that finishes after leaving review', async () => {
+    useSweeperStore.setState({
+      view: 'results',
+      wallet: { address: OWNER_B58, authToken: 'token-1' },
+      results: {
+        owner: OWNER_B58,
+        emptyAccounts: [],
+        priced: [],
+        solPriceUsd: 100,
+      },
+    });
+    const building = deferred();
+    const plan = makePlan([closesItem([emptyAccount()], true)]);
+    mockBuildSweepPlan.mockImplementation(async () => {
+      await building.promise;
+      return plan;
+    });
+
+    const startPromise = useSweeperStore
+      .getState()
+      .startReview({ emptyAccounts: [], dustTokens: [] });
+    expect(useSweeperStore.getState().view).toBe('review');
+    expect(useSweeperStore.getState().planning).toBe(true);
+
+    useSweeperStore.getState().cancelReview();
+    building.resolve();
+    await startPromise;
+
+    const state = useSweeperStore.getState();
+    expect(state.view).toBe('results');
+    expect(state.plan).toBeNull();
+    expect(state.planning).toBe(false);
   });
 });

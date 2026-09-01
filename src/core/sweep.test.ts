@@ -5,6 +5,7 @@ import {
   MAX_CLOSES_PER_TX,
   StatusConnection,
   waitForConfirmations,
+  waitForSignatureOutcomes,
 } from './sweep';
 import {
   EmptyAccount,
@@ -205,5 +206,31 @@ describe('waitForConfirmations', () => {
     await expect(waitForConfirmations(connection, ['a'], OPTS)).resolves.toBe(
       'confirmed'
     );
+  });
+
+  describe('waitForSignatureOutcomes', () => {
+    it('returns a per-signature outcome, timing out the unresolved ones', async () => {
+      const connection = {
+        getSignatureStatuses: jest.fn(async () => ({
+          value: [confirmed, { err: { InstructionError: [0, 'Custom'] } }, null],
+        })),
+      };
+      await expect(
+        waitForSignatureOutcomes(connection, ['a', 'b', 'c'], {
+          ...OPTS,
+          timeoutMs: 0,
+        })
+      ).resolves.toEqual(['confirmed', 'failed', 'timeout']);
+    });
+
+    it('keeps earlier terminal outcomes when later polls miss them', async () => {
+      const connection = connectionWith(
+        { value: [confirmed, null] },
+        { value: [null, confirmed] }
+      );
+      await expect(
+        waitForSignatureOutcomes(connection, ['a', 'b'], OPTS)
+      ).resolves.toEqual(['confirmed', 'confirmed']);
+    });
   });
 });

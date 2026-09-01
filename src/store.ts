@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { create } from 'zustand';
 import { FEE_BPS, FEE_WALLET, RPC_URL } from './config';
 import {
@@ -16,7 +16,12 @@ import {
   explainSimulationError,
   waitForSignatureOutcomes,
 } from './core/sweep';
-import { buildSweepPlan, SweepPlan } from './core/swap';
+import {
+  buildFeeAndCloses,
+  buildSwapTransactions,
+  buildSweepPlan,
+  SweepPlan,
+} from './core/swap';
 import {
   connect,
   signAndSendTransactions,
@@ -70,8 +75,11 @@ export interface SweepOutcome {
   totalAccounts: number;
   /** Actual where known (rent), quoted for swaps; net of fee when taken. */
   recoveredLamports: number;
+  /** Fee actually attempted in phase 2, on rent + confirmed swaps only. */
   feeLamports: number;
   feeTaken: boolean;
+  /** Set when swaps landed but the fee/closes phase could not be sent. */
+  feePhaseError: string | null;
   usdEstimate: number | null;
 }
 
@@ -271,97 +279,204 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
     set({ executing: true, sweepError: null });
     try {
       const connection = new Connection(RPC_URL, 'confirmed');
-      const { blockhash } = await connection.getLatestBlockhash();
-      for (const item of plan.transactions) {
-        if (item.transaction instanceof Transaction) {
-          item.transaction.recentBlockhash = blockhash;
-        }
-      }
-
-      for (const item of plan.transactions) {
-        const sim =
-          item.kind === 'swap'
-            ? await connection.simulateTransaction(item.transaction, {
-                sigVerify: false,
-                replaceRecentBlockhash: true,
-              })
-            : await connection.simulateTransaction(item.transaction);
-        if (sim.value.err != null) {
-          set({
-            executing: false,
-            sweepError: explainSimulationError(sim.value.err, sim.value.logs),
-          });
-          return;
-        }
-      }
-
-      const { signatures, session } = await signAndSendTransactions(
-        wallet,
-        plan.transactions.map((t) => t.transaction)
+      const swapInputs = plan.transactions.flatMap((t) =>
+        t.kind === 'swap' ? [t] : []
       );
-      set({ executing: false, confirming: true, wallet: session });
+      const closeAccounts = plan.transactions.flatMap((t) =>
+        t.kind === 'closes' ? t.emptyAccounts : []
+      );
 
-      const statuses = await waitForSignatureOutcomes(connection, signatures);
-      const items: SweepItemOutcome[] = plan.transactions.map((t, i) => {
-        const signature = signatures[i] ?? '';
-        const status = statuses[i] ?? 'timeout';
-        if (t.kind === 'swap') {
-          return {
-            kind: 'swap',
-            mint: t.mint,
-            quotedSolOut: t.quotedSolOut,
-            signature,
-            status,
-          };
-        }
-        if (t.kind === 'closes') {
-          return {
-            kind: 'closes',
-            accounts: t.emptyAccounts.length,
-            rentLamports: t.rentLamports,
-            includesFee: t.includesFee,
-            signature,
-            status,
-          };
-        }
-        return { kind: 'fee', signature, status };
-      });
-
-      let recoveredLamports = 0;
+      const items: SweepItemOutcome[] = [];
+      let session = wallet;
+      let sentAnything = false;
+      let confirmedSwapOut = 0;
       let swappedCount = 0;
+
+      // phase 1: swaps, rebuilt fresh so the embedded blockhash is seconds
+      // old at signing (a review-time build expires in under a minute)
+      if (swapInputs.length > 0) {
+        const buildStart = Date.now();
+        const { swaps, skipped } = await buildSwapTransactions(
+          swapInputs.map(({ mint, pubkey, amountRaw, decimals }) => ({
+            mint,
+            pubkey,
+            amountRaw,
+            decimals,
+          })),
+          wallet.address
+        );
+        console.log(
+          `[sweep] rebuilt ${swaps.length} swaps (${skipped.length} skipped) in ${
+            Date.now() - buildStart
+          }ms`
+        );
+        for (const s of skipped) {
+          items.push({
+            kind: 'swap',
+            mint: s.mint,
+            quotedSolOut: 0,
+            signature: '',
+            status: 'failed',
+          });
+        }
+
+        if (swaps.length > 0) {
+          for (const s of swaps) {
+            const sim = await connection.simulateTransaction(s.transaction, {
+              sigVerify: false,
+            });
+            if (sim.value.err != null) {
+              console.log('[sweep] swap preflight failed', sim.value.err);
+              set({
+                executing: false,
+                sweepError: explainSimulationError(
+                  sim.value.err,
+                  sim.value.logs
+                ),
+              });
+              return;
+            }
+          }
+          const sent = await signAndSendTransactions(
+            session,
+            swaps.map((s) => s.transaction)
+          );
+          session = sent.session;
+          sentAnything = true;
+          console.log(
+            `[sweep] swaps sent ${Date.now() - buildStart}ms after build`,
+            sent.signatures
+          );
+          set({ executing: false, confirming: true, wallet: session });
+
+          const outcomes = await waitForSignatureOutcomes(
+            connection,
+            sent.signatures
+          );
+          console.log('[sweep] swap outcomes', outcomes);
+          swaps.forEach((s, i) => {
+            const status = outcomes[i] ?? 'timeout';
+            if (status === 'confirmed') {
+              confirmedSwapOut += s.quotedSolOut;
+              swappedCount++;
+            }
+            items.push({
+              kind: 'swap',
+              mint: s.mint,
+              quotedSolOut: s.quotedSolOut,
+              signature: sent.signatures[i] ?? '',
+              status,
+            });
+          });
+        }
+      }
+
+      // phase 2: fee strictly on rent + CONFIRMED swap output; when nothing
+      // confirmed and nothing closes, no fee transaction exists at all
+      const phase2 = buildFeeAndCloses({
+        emptyAccounts: closeAccounts,
+        owner: wallet.address,
+        feeWallet: FEE_WALLET,
+        feeBps: FEE_BPS,
+        swapSolOutLamports: confirmedSwapOut,
+      });
+      console.log(
+        `[sweep] phase 2: ${phase2.transactions.length} txs, fee ${phase2.feeLamports} on confirmed ${confirmedSwapOut} + rent ${phase2.rentLamports}`
+      );
+
       let closedAccounts = 0;
       let feeTaken = false;
-      for (const item of items) {
-        if (item.status !== 'confirmed') continue;
-        if (item.kind === 'swap') {
-          swappedCount++;
-          recoveredLamports += item.quotedSolOut;
-        } else if (item.kind === 'closes') {
-          closedAccounts += item.accounts;
-          recoveredLamports += item.rentLamports;
-          if (item.includesFee) {
-            recoveredLamports -= plan.summary.feeLamports;
-            feeTaken = true;
+      let feePhaseError: string | null = null;
+
+      if (phase2.transactions.length > 0) {
+        set({ executing: true, confirming: false });
+        const { blockhash } = await connection.getLatestBlockhash();
+        for (const t of phase2.transactions) {
+          t.transaction.recentBlockhash = blockhash;
+        }
+        let simError: string | null = null;
+        for (const t of phase2.transactions) {
+          const sim = await connection.simulateTransaction(t.transaction);
+          if (sim.value.err != null) {
+            simError = explainSimulationError(sim.value.err, sim.value.logs);
+            break;
           }
+        }
+        if (simError !== null && !sentAnything) {
+          set({ executing: false, sweepError: simError });
+          return;
+        }
+        if (simError !== null) {
+          feePhaseError = simError;
         } else {
-          recoveredLamports -= plan.summary.feeLamports;
-          feeTaken = true;
+          try {
+            const sent2 = await signAndSendTransactions(
+              session,
+              phase2.transactions.map((t) => t.transaction)
+            );
+            session = sent2.session;
+            sentAnything = true;
+            set({ executing: false, confirming: true, wallet: session });
+
+            const outcomes2 = await waitForSignatureOutcomes(
+              connection,
+              sent2.signatures
+            );
+            console.log('[sweep] phase 2 outcomes', outcomes2);
+            phase2.transactions.forEach((t, i) => {
+              const status = outcomes2[i] ?? 'timeout';
+              const signature = sent2.signatures[i] ?? '';
+              if (t.kind === 'closes') {
+                if (status === 'confirmed') {
+                  closedAccounts += t.emptyAccounts.length;
+                  if (t.includesFee) feeTaken = true;
+                }
+                items.push({
+                  kind: 'closes',
+                  accounts: t.emptyAccounts.length,
+                  rentLamports: t.rentLamports,
+                  includesFee: t.includesFee,
+                  signature,
+                  status,
+                });
+              } else {
+                if (status === 'confirmed') feeTaken = true;
+                items.push({ kind: 'fee', signature, status });
+              }
+            });
+          } catch (e) {
+            if (!sentAnything) throw e;
+            // swaps are already final; report instead of pretending
+            feePhaseError =
+              e instanceof Error ? e.message : 'Fee transaction not sent';
+          }
         }
       }
+
+      let recoveredLamports = confirmedSwapOut;
+      for (const item of items) {
+        if (item.kind === 'closes' && item.status === 'confirmed') {
+          recoveredLamports += item.rentLamports;
+        }
+      }
+      if (feeTaken) recoveredLamports -= phase2.feeLamports;
+
       const solPriceUsd = get().results?.solPriceUsd ?? null;
       set({
+        executing: false,
         confirming: false,
         plan: null,
         view: 'done',
         outcome: {
           items,
           swappedCount,
-          totalSwaps: plan.summary.tokensSwapped,
+          totalSwaps: swapInputs.length,
           closedAccounts,
-          totalAccounts: plan.summary.accountsClosed,
+          totalAccounts: closeAccounts.length,
           recoveredLamports,
-          feeLamports: plan.summary.feeLamports,
+          feeLamports: phase2.feeLamports,
           feeTaken,
+          feePhaseError,
           usdEstimate:
             solPriceUsd === null
               ? null

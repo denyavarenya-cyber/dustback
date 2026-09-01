@@ -6,14 +6,8 @@ import {
   PricedBalance,
   tokenUiAmount,
 } from '../core/price';
-import { EmptyAccount, totalRecoverableLamports } from '../core/scan';
-
-export interface ResultsProps {
-  emptyAccounts: EmptyAccount[];
-  priced: PricedBalance[];
-  solPriceUsd: number | null;
-  onBack: () => void;
-}
+import { totalRecoverableLamports } from '../core/scan';
+import { useSweeperStore } from '../store';
 
 export function shortenMint(mint: string): string {
   return `${mint.slice(0, 4)}…${mint.slice(-4)}`;
@@ -51,18 +45,21 @@ function CheckRow(props: {
   );
 }
 
-export default function ResultsScreen({
-  emptyAccounts,
-  priced,
-  solPriceUsd,
-  onBack,
-}: ResultsProps) {
+const NO_PRICED: PricedBalance[] = [];
+
+export default function ResultsScreen() {
+  const results = useSweeperStore((s) => s.results);
+  const onBack = useSweeperStore((s) => s.reset);
+  const priced = results?.priced ?? NO_PRICED;
   const { dust, noMarket } = useMemo(
     () => classifyDust(priced, DUST_THRESHOLD_USD),
     [priced]
   );
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [includeEmpty, setIncludeEmpty] = useState(true);
+
+  if (!results) return null;
+  const { emptyAccounts, solPriceUsd } = results;
 
   const toggleDust = (pubkey: string) =>
     setExcluded((prev) => {

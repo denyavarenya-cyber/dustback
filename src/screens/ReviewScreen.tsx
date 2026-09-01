@@ -122,6 +122,14 @@ export default function ReviewScreen() {
             </View>
           )}
 
+          {summary.tokensSwapped > 0 && (
+            <Text style={{ color: '#666', marginTop: 12, fontSize: 13 }}>
+              You will sign twice: swaps first, then{' '}
+              {summary.accountsClosed > 0 ? 'account closes and ' : ''}the fee
+              — charged only on swaps that actually completed.
+            </Text>
+          )}
+
           <View style={{ marginTop: 24 }}>
             <Button
               title="Confirm sweep"

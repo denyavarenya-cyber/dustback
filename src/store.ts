@@ -11,7 +11,11 @@ import {
   selectQuoteTargets,
 } from './core/price';
 import { EmptyAccount, scanWallet } from './core/scan';
-import { buildCloseTransactions, SweepSummary } from './core/sweep';
+import {
+  buildCloseTransactions,
+  SweepSummary,
+  waitForConfirmations,
+} from './core/sweep';
 import {
   connect,
   signAndSendTransactions,
@@ -47,6 +51,7 @@ interface SweeperState {
   wallet: WalletSession | null;
   connectError: string | null;
   sweeping: boolean;
+  confirming: boolean;
   sweepError: string | null;
   lastSweep: SweepReceipt | null;
   setAddress: (address: string) => void;
@@ -70,6 +75,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
   wallet: null,
   connectError: null,
   sweeping: false,
+  confirming: false,
   sweepError: null,
   lastSweep: null,
 
@@ -213,14 +219,23 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       );
       set({
         sweeping: false,
+        confirming: true,
         wallet: session,
         lastSweep: { signatures, summary },
         address: results.owner,
+      });
+      // rescanning before the RPC sees the closes would show stale results
+      const outcome = await waitForConfirmations(connection, signatures);
+      set({
+        confirming: false,
+        sweepError:
+          outcome === 'failed' ? 'A sweep transaction failed on-chain' : null,
       });
       await get().scan();
     } catch (e) {
       set({
         sweeping: false,
+        confirming: false,
         sweepError: e instanceof Error ? e.message : 'Sweep failed',
       });
     }
@@ -232,6 +247,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       results: null,
       error: null,
       quoteProgress: null,
+      confirming: false,
       sweepError: null,
       lastSweep: null,
       scanId: state.scanId + 1,

@@ -25,6 +25,30 @@ jest.mock('./core/wallet', () => ({
   signAndSendTransactions: jest.fn(),
 }));
 
+jest.mock('@solana/web3.js', () => {
+  const actual = jest.requireActual('@solana/web3.js');
+  const connectionMock = {
+    getLatestBlockhash: jest.fn(),
+    getSignatureStatuses: jest.fn(),
+    simulateTransaction: jest.fn(),
+  };
+  return {
+    ...actual,
+    Connection: jest.fn(() => connectionMock),
+    __connectionMock: connectionMock,
+  };
+});
+
+const connectionMock = (
+  jest.requireMock('@solana/web3.js') as {
+    __connectionMock: {
+      getLatestBlockhash: jest.Mock;
+      getSignatureStatuses: jest.Mock;
+      simulateTransaction: jest.Mock;
+    };
+  }
+).__connectionMock;
+
 import {
   fetchDustQuotes,
   getSolPriceUsd,
@@ -32,6 +56,7 @@ import {
   priceTokens,
 } from './core/price';
 import { scanWallet, ScanResult } from './core/scan';
+import { signAndSendTransactions } from './core/wallet';
 import { useSweeperStore } from './store';
 
 const mockScanWallet = scanWallet as jest.MockedFunction<typeof scanWallet>;
@@ -41,6 +66,9 @@ const mockGetSolPriceUsd = getSolPriceUsd as jest.MockedFunction<
 >;
 const mockFetchDustQuotes = fetchDustQuotes as jest.MockedFunction<
   typeof fetchDustQuotes
+>;
+const mockSignAndSend = signAndSendTransactions as jest.MockedFunction<
+  typeof signAndSendTransactions
 >;
 
 const ADDRESS = PublicKey.unique().toBase58();
@@ -91,10 +119,49 @@ beforeEach(() => {
     results: null,
     scanId: 0,
     quoteProgress: null,
+    wallet: null,
+    sweeping: false,
+    confirming: false,
+    sweepError: null,
+    lastSweep: null,
   });
   mockScanWallet.mockResolvedValue(SCAN_RESULT);
   mockGetSolPriceUsd.mockResolvedValue(100);
 });
+
+const OWNER_B58 = PublicKey.unique().toBase58();
+const EMPTY_PUBKEY = PublicKey.unique().toBase58();
+
+function seedSweepableResults() {
+  useSweeperStore.setState({
+    wallet: { address: OWNER_B58, authToken: 'token-1' },
+    results: {
+      owner: OWNER_B58,
+      emptyAccounts: [
+        { pubkey: EMPTY_PUBKEY, program: 'token', lamports: 2039280 },
+      ],
+      priced: [],
+      solPriceUsd: 100,
+    },
+  });
+  connectionMock.getLatestBlockhash.mockResolvedValue({
+    blockhash: PublicKey.unique().toBase58(),
+    lastValidBlockHeight: 1,
+  });
+  connectionMock.simulateTransaction.mockResolvedValue({
+    value: { err: null, logs: [] },
+  });
+  connectionMock.getSignatureStatuses.mockResolvedValue({
+    value: [{ err: null, confirmationStatus: 'confirmed' }],
+  });
+  mockSignAndSend.mockResolvedValue({
+    signatures: ['sig1'],
+    session: { address: OWNER_B58, authToken: 'token-2' },
+  });
+  mockScanWallet.mockResolvedValue({ emptyAccounts: [], nonEmptyAccounts: [] });
+  mockPriceTokens.mockResolvedValue([]);
+  mockFetchDustQuotes.mockResolvedValue(undefined);
+}
 
 describe('scan pipeline', () => {
   it('renders phase 1 results before quotes and fills them in after', async () => {
@@ -175,6 +242,37 @@ describe('scan pipeline', () => {
 
     oldQuotes.resolve();
     await first;
+  });
+
+  it('sweep: confirms signatures before rescanning and renders fresh results', async () => {
+    seedSweepableResults();
+    await useSweeperStore.getState().sweepRent();
+
+    const state = useSweeperStore.getState();
+    expect(state.lastSweep?.signatures).toEqual(['sig1']);
+    expect(state.results?.emptyAccounts).toEqual([]);
+    expect(state.confirming).toBe(false);
+    expect(state.sweeping).toBe(false);
+    expect(state.sweepError).toBeNull();
+    expect(state.wallet?.authToken).toBe('token-2');
+
+    expect(
+      connectionMock.getSignatureStatuses.mock.invocationCallOrder[0]
+    ).toBeLessThan(mockScanWallet.mock.invocationCallOrder[0]);
+  });
+
+  it('sweep: surfaces an on-chain failure but still rescans', async () => {
+    seedSweepableResults();
+    connectionMock.getSignatureStatuses.mockResolvedValue({
+      value: [{ err: { InstructionError: [0, 'Custom'] } }],
+    });
+
+    await useSweeperStore.getState().sweepRent();
+
+    const state = useSweeperStore.getState();
+    expect(state.sweepError).toMatch(/failed on-chain/);
+    expect(state.confirming).toBe(false);
+    expect(mockScanWallet).toHaveBeenCalled();
   });
 
   it('ignores late quotes after leaving the results screen', async () => {

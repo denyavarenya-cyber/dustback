@@ -1,5 +1,10 @@
 import { PublicKey, SystemInstruction, SystemProgram } from '@solana/web3.js';
-import { buildCloseTransactions, MAX_CLOSES_PER_TX } from './sweep';
+import {
+  buildCloseTransactions,
+  MAX_CLOSES_PER_TX,
+  StatusConnection,
+  waitForConfirmations,
+} from './sweep';
 import {
   EmptyAccount,
   TOKEN_2022_PROGRAM_ID,
@@ -106,5 +111,74 @@ describe('buildCloseTransactions', () => {
         userReceivesLamports: 0,
       },
     });
+  });
+});
+
+describe('waitForConfirmations', () => {
+  const OPTS = { pollIntervalMs: 0 };
+
+  function connectionWith(
+    ...responses: Array<{ value: unknown[] } | Error>
+  ): StatusConnection & { getSignatureStatuses: jest.Mock } {
+    const getSignatureStatuses = jest.fn();
+    for (const r of responses) {
+      if (r instanceof Error) getSignatureStatuses.mockRejectedValueOnce(r);
+      else getSignatureStatuses.mockResolvedValueOnce(r);
+    }
+    return { getSignatureStatuses } as StatusConnection & {
+      getSignatureStatuses: jest.Mock;
+    };
+  }
+
+  const confirmed = { err: null, confirmationStatus: 'confirmed' };
+  const finalized = { err: null, confirmationStatus: 'finalized' };
+
+  it('polls until every signature is confirmed', async () => {
+    const connection = connectionWith(
+      { value: [confirmed, null] },
+      { value: [confirmed, finalized] }
+    );
+    await expect(
+      waitForConfirmations(connection, ['a', 'b'], OPTS)
+    ).resolves.toBe('confirmed');
+    expect(connection.getSignatureStatuses).toHaveBeenCalledTimes(2);
+    expect(connection.getSignatureStatuses).toHaveBeenCalledWith(['a', 'b']);
+  });
+
+  it('does not treat processed as confirmed', async () => {
+    const connection = connectionWith(
+      { value: [{ err: null, confirmationStatus: 'processed' }] },
+      { value: [confirmed] }
+    );
+    await expect(waitForConfirmations(connection, ['a'], OPTS)).resolves.toBe(
+      'confirmed'
+    );
+    expect(connection.getSignatureStatuses).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports an on-chain failure', async () => {
+    const connection = connectionWith({
+      value: [{ err: { InstructionError: [0, 'Custom'] } }],
+    });
+    await expect(waitForConfirmations(connection, ['a'], OPTS)).resolves.toBe(
+      'failed'
+    );
+  });
+
+  it('times out when signatures never confirm', async () => {
+    const connection = { getSignatureStatuses: jest.fn(async () => ({ value: [null] })) };
+    await expect(
+      waitForConfirmations(connection, ['a'], { ...OPTS, timeoutMs: 0 })
+    ).resolves.toBe('timeout');
+    expect(connection.getSignatureStatuses).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps polling through transient rpc errors', async () => {
+    const connection = connectionWith(new Error('rpc down'), {
+      value: [confirmed],
+    });
+    await expect(waitForConfirmations(connection, ['a'], OPTS)).resolves.toBe(
+      'confirmed'
+    );
   });
 });

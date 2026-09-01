@@ -70,6 +70,7 @@ export default function ResultsScreen() {
   const quoteProgress = useSweeperStore((s) => s.quoteProgress);
   const wallet = useSweeperStore((s) => s.wallet);
   const sweeping = useSweeperStore((s) => s.sweeping);
+  const confirming = useSweeperStore((s) => s.confirming);
   const sweepError = useSweeperStore((s) => s.sweepError);
   const lastSweep = useSweeperStore((s) => s.lastSweep);
   const sweepRent = useSweeperStore((s) => s.sweepRent);
@@ -180,11 +181,23 @@ export default function ResultsScreen() {
               <Button
                 title="Sweep rent only"
                 onPress={sweepRent}
-                disabled={sweeping}
+                disabled={sweeping || confirming}
               />
             </View>
           )}
           {sweeping && <ActivityIndicator style={{ marginTop: 16 }} />}
+          {confirming && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 16,
+              }}
+            >
+              <ActivityIndicator />
+              <Text style={{ marginLeft: 8 }}>Confirming…</Text>
+            </View>
+          )}
           {sweepError && (
             <Text style={{ color: 'red', marginTop: 16 }}>{sweepError}</Text>
           )}

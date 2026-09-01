@@ -200,6 +200,15 @@ describe('getSolPriceUsd', () => {
     }) as unknown as typeof fetch;
     expect(await getSolPriceUsd(fetchImpl)).toBeNull();
   });
+
+  it('retries once when rate limited', async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 429, json: async () => ({}) })
+      .mockResolvedValueOnce(jsonResponse({ [SOL_MINT]: { usdPrice: 99 } }));
+    expect(await getSolPriceUsd(fetchImpl as unknown as typeof fetch)).toBe(99);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('tokenUiAmount', () => {

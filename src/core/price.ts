@@ -162,15 +162,22 @@ export async function priceTokens(
 export async function getSolPriceUsd(
   fetchImpl: typeof fetch = fetch
 ): Promise<number | null> {
-  try {
-    const res = await fetchImpl(`${PRICE_URL}?ids=${SOL_MINT}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const price = data?.[SOL_MINT]?.usdPrice;
-    return typeof price === 'number' && Number.isFinite(price) ? price : null;
-  } catch {
-    return null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetchImpl(`${PRICE_URL}?ids=${SOL_MINT}`);
+      if (res.status === 429 && attempt === 0) {
+        await sleep(REQUEST_INTERVAL_MS);
+        continue;
+      }
+      if (!res.ok) return null;
+      const data = await res.json();
+      const price = data?.[SOL_MINT]?.usdPrice;
+      return typeof price === 'number' && Number.isFinite(price) ? price : null;
+    } catch {
+      return null;
+    }
   }
+  return null;
 }
 
 export function classifyDust(

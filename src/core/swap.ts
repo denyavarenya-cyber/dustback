@@ -66,8 +66,25 @@ export interface SweepPlan {
   skippedTokens: SkippedToken[];
 }
 
+export interface SwapTokenInput {
+  mint: string;
+  pubkey: string;
+  amountRaw: string;
+  decimals: number;
+}
+
+export interface BuiltSwap extends SwapTokenInput {
+  quotedSolOut: number;
+  transaction: VersionedTransaction;
+}
+
+export type FeeCloseTransaction = Extract<
+  PlannedTransaction,
+  { kind: 'closes' | 'fee' }
+>;
+
 async function buildSwapTransaction(
-  token: PricedBalance,
+  token: SwapTokenInput,
   owner: string,
   opts: PriceOptions
 ): Promise<{ quotedSolOut: number; transaction: VersionedTransaction } | null> {
@@ -109,24 +126,22 @@ async function buildSwapTransaction(
   }
 }
 
-export async function buildSweepPlan(
-  selection: SweepSelection,
+/** Swap txs embed a blockhash that dies in under a minute: build these
+ *  immediately before signing, never ahead of a screen the user reads. */
+export async function buildSwapTransactions(
+  tokens: SwapTokenInput[],
+  owner: string,
   opts: PriceOptions = {}
-): Promise<SweepPlan> {
-  const owner = new PublicKey(selection.owner);
-  const transactions: PlannedTransaction[] = [];
-  const skippedTokens: SkippedToken[] = [];
-
-  let quotedSolOutLamports = 0;
-  for (const token of selection.dustTokens) {
-    const built = await buildSwapTransaction(token, selection.owner, opts);
+): Promise<{ swaps: BuiltSwap[]; skipped: SkippedToken[] }> {
+  const swaps: BuiltSwap[] = [];
+  const skipped: SkippedToken[] = [];
+  for (const token of tokens) {
+    const built = await buildSwapTransaction(token, owner, opts);
     if (built === null) {
-      skippedTokens.push({ mint: token.mint, pubkey: token.pubkey });
+      skipped.push({ mint: token.mint, pubkey: token.pubkey });
       continue;
     }
-    quotedSolOutLamports += built.quotedSolOut;
-    transactions.push({
-      kind: 'swap',
+    swaps.push({
       mint: token.mint,
       pubkey: token.pubkey,
       amountRaw: token.amountRaw,
@@ -135,21 +150,31 @@ export async function buildSweepPlan(
       transaction: built.transaction,
     });
   }
+  return { swaps, skipped };
+}
 
-  const rentLamports = selection.emptyAccounts.reduce(
+/** Fee is 8% of rent + swapSolOutLamports. Callers must pass only the
+ *  CONFIRMED swap output at send time; a zero basis yields no fee transfer. */
+export function buildFeeAndCloses(args: {
+  emptyAccounts: EmptyAccount[];
+  owner: string;
+  feeWallet: string | null;
+  feeBps: number;
+  swapSolOutLamports: number;
+}): {
+  transactions: FeeCloseTransaction[];
+  rentLamports: number;
+  feeLamports: number;
+} {
+  const owner = new PublicKey(args.owner);
+  const rentLamports = args.emptyAccounts.reduce(
     (sum, account) => sum + account.lamports,
     0
   );
-  // v1 simplification: fee is 8% of rent + QUOTED swap output, computed at
-  // build time. Actual swap output can differ within slippage; no post-hoc
-  // correction, even when a swap later fails on-chain.
   const feeLamports = Math.floor(
-    ((rentLamports + quotedSolOutLamports) * selection.feeBps) / 10000
+    ((rentLamports + args.swapSolOutLamports) * args.feeBps) / 10000
   );
-
-  const feeWallet = selection.feeWallet
-    ? new PublicKey(selection.feeWallet)
-    : owner;
+  const feeWallet = args.feeWallet ? new PublicKey(args.feeWallet) : owner;
   const feeInstruction =
     feeLamports > 0
       ? SystemProgram.transfer({
@@ -159,9 +184,8 @@ export async function buildSweepPlan(
         })
       : null;
 
-  // fee goes in the LAST transaction so a mid-batch abort cannot take the
-  // fee before the closes it covers have been submitted
-  const closeChunks = buildCloseChunks(selection.emptyAccounts, owner);
+  const transactions: FeeCloseTransaction[] = [];
+  const closeChunks = buildCloseChunks(args.emptyAccounts, owner);
   closeChunks.forEach(({ transaction, accounts }, i) => {
     const includesFee =
       i === closeChunks.length - 1 && feeInstruction !== null;
@@ -180,18 +204,49 @@ export async function buildSweepPlan(
     tx.add(feeInstruction);
     transactions.push({ kind: 'fee', transaction: tx });
   }
+  return { transactions, rentLamports, feeLamports };
+}
+
+/** Review-time preview. Quotes here are for DISPLAY; the send path rebuilds
+ *  swaps fresh and recomputes the fee on confirmed output only. */
+export async function buildSweepPlan(
+  selection: SweepSelection,
+  opts: PriceOptions = {}
+): Promise<SweepPlan> {
+  const { swaps, skipped } = await buildSwapTransactions(
+    selection.dustTokens,
+    selection.owner,
+    opts
+  );
+  const quotedSolOutLamports = swaps.reduce(
+    (sum, s) => sum + s.quotedSolOut,
+    0
+  );
+  const transactions: PlannedTransaction[] = swaps.map((s) => ({
+    kind: 'swap',
+    ...s,
+  }));
+
+  const phase2 = buildFeeAndCloses({
+    emptyAccounts: selection.emptyAccounts,
+    owner: selection.owner,
+    feeWallet: selection.feeWallet,
+    feeBps: selection.feeBps,
+    swapSolOutLamports: quotedSolOutLamports,
+  });
+  transactions.push(...phase2.transactions);
 
   const userReceivesLamports =
-    rentLamports + quotedSolOutLamports - feeLamports;
+    phase2.rentLamports + quotedSolOutLamports - phase2.feeLamports;
   return {
     transactions,
-    skippedTokens,
+    skippedTokens: skipped,
     summary: {
       accountsClosed: selection.emptyAccounts.length,
-      tokensSwapped: transactions.filter((t) => t.kind === 'swap').length,
+      tokensSwapped: swaps.length,
       quotedSolOutLamports,
-      rentLamports,
-      feeLamports,
+      rentLamports: phase2.rentLamports,
+      feeLamports: phase2.feeLamports,
       userReceivesLamports,
       usdEstimate:
         selection.solPriceUsd === null

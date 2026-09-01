@@ -7,7 +7,7 @@ import {
 } from '@solana/web3.js';
 import { PricedBalance } from './price';
 import { EmptyAccount } from './scan';
-import { buildSweepPlan, SweepSelection } from './swap';
+import { buildFeeAndCloses, buildSweepPlan, SweepSelection } from './swap';
 
 const OWNER = PublicKey.unique();
 const FEE_WALLET = PublicKey.unique();
@@ -224,6 +224,46 @@ describe('buildSweepPlan', () => {
     expect(body.userPublicKey).toBe(OWNER.toBase58());
     expect(body.wrapAndUnwrapSol).toBe(true);
     expect(body.quoteResponse.outAmount).toBe('1000');
+  });
+
+  it('fee builder charges only the confirmed swap output it is given', () => {
+    const confirmedOnly = buildFeeAndCloses({
+      emptyAccounts: [],
+      owner: OWNER.toBase58(),
+      feeWallet: FEE_WALLET.toBase58(),
+      feeBps: 800,
+      swapSolOutLamports: 10000, // 1 of 2 quoted swaps confirmed
+    });
+    expect(confirmedOnly.feeLamports).toBe(800);
+    expect(confirmedOnly.transactions.map((t) => t.kind)).toEqual(['fee']);
+
+    const nothingConfirmed = buildFeeAndCloses({
+      emptyAccounts: [],
+      owner: OWNER.toBase58(),
+      feeWallet: FEE_WALLET.toBase58(),
+      feeBps: 800,
+      swapSolOutLamports: 0,
+    });
+    expect(nothingConfirmed.feeLamports).toBe(0);
+    expect(nothingConfirmed.transactions).toEqual([]); // no fee tx exists at all
+  });
+
+  it('fee builder with closes and zero confirmed swaps charges rent fee only', () => {
+    const built = buildFeeAndCloses({
+      emptyAccounts: accounts(1),
+      owner: OWNER.toBase58(),
+      feeWallet: FEE_WALLET.toBase58(),
+      feeBps: 800,
+      swapSolOutLamports: 0,
+    });
+    expect(built.feeLamports).toBe(Math.floor((RENT * 800) / 10000));
+    expect(built.transactions.map((t) => t.kind)).toEqual(['closes']);
+    const closes = built.transactions[0];
+    expect(closes.kind === 'closes' && closes.includesFee).toBe(true);
+    const ix = closes.transaction.instructions.at(-1)!;
+    expect(Number(SystemInstruction.decodeTransfer(ix).lamports)).toBe(
+      built.feeLamports
+    );
   });
 
   it('deserializes the swap transaction as versioned', async () => {

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import { create } from 'zustand';
 import { FEE_BPS, FEE_WALLET, RPC_URL } from './config';
 import {
@@ -12,11 +12,11 @@ import {
 } from './core/price';
 import { EmptyAccount, scanWallet } from './core/scan';
 import {
-  buildCloseTransactions,
+  ConfirmationOutcome,
   explainSimulationError,
-  SweepSummary,
-  waitForConfirmations,
+  waitForSignatureOutcomes,
 } from './core/sweep';
+import { buildSweepPlan, SweepPlan } from './core/swap';
 import {
   connect,
   signAndSendTransactions,
@@ -24,6 +24,8 @@ import {
 } from './core/wallet';
 
 const LAST_ADDRESS_KEY = 'sweeper:lastAddress';
+
+export type View = 'form' | 'results' | 'review' | 'done';
 
 export interface ScanResults {
   owner: string;
@@ -37,12 +39,44 @@ export interface QuoteProgress {
   total: number;
 }
 
-export interface SweepReceipt {
-  signatures: string[];
-  summary: SweepSummary;
+export interface SweepSelectionInput {
+  emptyAccounts: EmptyAccount[];
+  dustTokens: PricedBalance[];
+}
+
+export type SweepItemOutcome =
+  | {
+      kind: 'swap';
+      mint: string;
+      quotedSolOut: number;
+      signature: string;
+      status: ConfirmationOutcome;
+    }
+  | {
+      kind: 'closes';
+      accounts: number;
+      rentLamports: number;
+      includesFee: boolean;
+      signature: string;
+      status: ConfirmationOutcome;
+    }
+  | { kind: 'fee'; signature: string; status: ConfirmationOutcome };
+
+export interface SweepOutcome {
+  items: SweepItemOutcome[];
+  swappedCount: number;
+  totalSwaps: number;
+  closedAccounts: number;
+  totalAccounts: number;
+  /** Actual where known (rent), quoted for swaps; net of fee when taken. */
+  recoveredLamports: number;
+  feeLamports: number;
+  feeTaken: boolean;
+  usdEstimate: number | null;
 }
 
 interface SweeperState {
+  view: View;
   address: string;
   loading: boolean;
   error: string | null;
@@ -51,22 +85,28 @@ interface SweeperState {
   quoteProgress: QuoteProgress | null;
   wallet: WalletSession | null;
   connectError: string | null;
-  sweeping: boolean;
+  plan: SweepPlan | null;
+  planning: boolean;
+  executing: boolean;
   confirming: boolean;
   sweepError: string | null;
-  lastSweep: SweepReceipt | null;
+  outcome: SweepOutcome | null;
   setAddress: (address: string) => void;
   restoreAddress: () => Promise<void>;
   scan: () => Promise<void>;
   connectWallet: () => Promise<void>;
   scanConnectedWallet: () => Promise<void>;
-  sweepRent: () => Promise<void>;
+  startReview: (selected: SweepSelectionInput) => Promise<void>;
+  cancelReview: () => void;
+  confirmSweep: () => Promise<void>;
   reset: () => void;
 }
 
 let quoteAbort: AbortController | null = null;
+let planCounter = 0;
 
 export const useSweeperStore = create<SweeperState>((set, get) => ({
+  view: 'form',
   address: '',
   loading: false,
   error: null,
@@ -75,10 +115,12 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
   quoteProgress: null,
   wallet: null,
   connectError: null,
-  sweeping: false,
+  plan: null,
+  planning: false,
+  executing: false,
   confirming: false,
   sweepError: null,
-  lastSweep: null,
+  outcome: null,
 
   setAddress: (address) => set({ address }),
 
@@ -125,6 +167,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
         };
       });
       set({
+        view: 'results',
         results: {
           owner: owner.toBase58(),
           emptyAccounts: scan.emptyAccounts,
@@ -192,34 +235,60 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
     await get().scan();
   },
 
-  sweepRent: async () => {
+  startReview: async (selected) => {
     const { wallet, results } = get();
-    if (!wallet || !results || results.emptyAccounts.length === 0) return;
-    if (results.owner !== wallet.address) {
-      set({ sweepError: 'Scanned address is not the connected wallet' });
-      return;
-    }
-
-    set({ sweeping: true, sweepError: null, lastSweep: null });
+    if (!wallet || !results || wallet.address !== results.owner) return;
+    const planId = ++planCounter;
+    set({ view: 'review', planning: true, plan: null, sweepError: null });
     try {
-      const owner = new PublicKey(wallet.address);
-      const feeWallet = FEE_WALLET ? new PublicKey(FEE_WALLET) : owner;
-      const { transactions, summary } = buildCloseTransactions(
-        results.emptyAccounts,
-        owner,
-        feeWallet,
-        FEE_BPS
-      );
+      const plan = await buildSweepPlan({
+        owner: results.owner,
+        emptyAccounts: selected.emptyAccounts,
+        dustTokens: selected.dustTokens,
+        feeWallet: FEE_WALLET,
+        feeBps: FEE_BPS,
+        solPriceUsd: results.solPriceUsd,
+      });
+      if (planCounter !== planId || get().view !== 'review') return;
+      set({ plan, planning: false });
+    } catch (e) {
+      if (planCounter !== planId || get().view !== 'review') return;
+      set({
+        planning: false,
+        sweepError: e instanceof Error ? e.message : 'Failed to build plan',
+      });
+    }
+  },
+
+  cancelReview: () => {
+    planCounter++;
+    set({ view: 'results', plan: null, planning: false, sweepError: null });
+  },
+
+  confirmSweep: async () => {
+    const { plan, wallet } = get();
+    if (!plan || !wallet || plan.transactions.length === 0) return;
+    set({ executing: true, sweepError: null });
+    try {
       const connection = new Connection(RPC_URL, 'confirmed');
       const { blockhash } = await connection.getLatestBlockhash();
-      for (const tx of transactions) tx.recentBlockhash = blockhash;
+      for (const item of plan.transactions) {
+        if (item.transaction instanceof Transaction) {
+          item.transaction.recentBlockhash = blockhash;
+        }
+      }
 
-      // fail in-app with a readable message instead of opaquely in the wallet
-      for (const tx of transactions) {
-        const sim = await connection.simulateTransaction(tx);
+      for (const item of plan.transactions) {
+        const sim =
+          item.kind === 'swap'
+            ? await connection.simulateTransaction(item.transaction, {
+                sigVerify: false,
+                replaceRecentBlockhash: true,
+              })
+            : await connection.simulateTransaction(item.transaction);
         if (sim.value.err != null) {
           set({
-            sweeping: false,
+            executing: false,
             sweepError: explainSimulationError(sim.value.err, sim.value.logs),
           });
           return;
@@ -228,26 +297,80 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
 
       const { signatures, session } = await signAndSendTransactions(
         wallet,
-        transactions
+        plan.transactions.map((t) => t.transaction)
       );
-      set({
-        sweeping: false,
-        confirming: true,
-        wallet: session,
-        lastSweep: { signatures, summary },
-        address: results.owner,
+      set({ executing: false, confirming: true, wallet: session });
+
+      const statuses = await waitForSignatureOutcomes(connection, signatures);
+      const items: SweepItemOutcome[] = plan.transactions.map((t, i) => {
+        const signature = signatures[i] ?? '';
+        const status = statuses[i] ?? 'timeout';
+        if (t.kind === 'swap') {
+          return {
+            kind: 'swap',
+            mint: t.mint,
+            quotedSolOut: t.quotedSolOut,
+            signature,
+            status,
+          };
+        }
+        if (t.kind === 'closes') {
+          return {
+            kind: 'closes',
+            accounts: t.emptyAccounts.length,
+            rentLamports: t.rentLamports,
+            includesFee: t.includesFee,
+            signature,
+            status,
+          };
+        }
+        return { kind: 'fee', signature, status };
       });
-      // rescanning before the RPC sees the closes would show stale results
-      const outcome = await waitForConfirmations(connection, signatures);
+
+      let recoveredLamports = 0;
+      let swappedCount = 0;
+      let closedAccounts = 0;
+      let feeTaken = false;
+      for (const item of items) {
+        if (item.status !== 'confirmed') continue;
+        if (item.kind === 'swap') {
+          swappedCount++;
+          recoveredLamports += item.quotedSolOut;
+        } else if (item.kind === 'closes') {
+          closedAccounts += item.accounts;
+          recoveredLamports += item.rentLamports;
+          if (item.includesFee) {
+            recoveredLamports -= plan.summary.feeLamports;
+            feeTaken = true;
+          }
+        } else {
+          recoveredLamports -= plan.summary.feeLamports;
+          feeTaken = true;
+        }
+      }
+      const solPriceUsd = get().results?.solPriceUsd ?? null;
       set({
         confirming: false,
-        sweepError:
-          outcome === 'failed' ? 'A sweep transaction failed on-chain' : null,
+        plan: null,
+        view: 'done',
+        outcome: {
+          items,
+          swappedCount,
+          totalSwaps: plan.summary.tokensSwapped,
+          closedAccounts,
+          totalAccounts: plan.summary.accountsClosed,
+          recoveredLamports,
+          feeLamports: plan.summary.feeLamports,
+          feeTaken,
+          usdEstimate:
+            solPriceUsd === null
+              ? null
+              : (recoveredLamports / 1e9) * solPriceUsd,
+        },
       });
-      await get().scan();
     } catch (e) {
       set({
-        sweeping: false,
+        executing: false,
         confirming: false,
         sweepError: e instanceof Error ? e.message : 'Sweep failed',
       });
@@ -256,13 +379,18 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
 
   reset: () => {
     quoteAbort?.abort();
+    planCounter++;
     set((state) => ({
+      view: 'form',
       results: null,
       error: null,
       quoteProgress: null,
+      plan: null,
+      planning: false,
+      executing: false,
       confirming: false,
       sweepError: null,
-      lastSweep: null,
+      outcome: null,
       scanId: state.scanId + 1,
     }));
   },

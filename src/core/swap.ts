@@ -32,12 +32,13 @@ export type PlannedTransaction =
       mint: string;
       pubkey: string;
       amountRaw: string;
+      decimals: number;
       quotedSolOut: number;
       transaction: VersionedTransaction;
     }
   | {
       kind: 'closes';
-      accounts: number;
+      emptyAccounts: EmptyAccount[];
       rentLamports: number;
       includesFee: boolean;
       transaction: Transaction;
@@ -129,6 +130,7 @@ export async function buildSweepPlan(
       mint: token.mint,
       pubkey: token.pubkey,
       amountRaw: token.amountRaw,
+      decimals: token.decimals,
       quotedSolOut: built.quotedSolOut,
       transaction: built.transaction,
     });
@@ -166,7 +168,7 @@ export async function buildSweepPlan(
     if (includesFee) transaction.add(feeInstruction!);
     transactions.push({
       kind: 'closes',
-      accounts: accounts.length,
+      emptyAccounts: accounts,
       rentLamports: accounts.reduce((sum, a) => sum + a.lamports, 0),
       includesFee,
       transaction,

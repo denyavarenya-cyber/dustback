@@ -1,5 +1,9 @@
 import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
-import { PublicKey, Transaction } from '@solana/web3.js';
+import {
+  PublicKey,
+  Transaction,
+  VersionedTransaction,
+} from '@solana/web3.js';
 
 const APP_IDENTITY = {
   name: 'Sweeper',
@@ -89,7 +93,7 @@ function classifySignFailure(e: unknown): SignFailure | null {
 
 export async function signAndSendTransactions(
   session: WalletSession,
-  transactions: Transaction[]
+  transactions: (Transaction | VersionedTransaction)[]
 ): Promise<{ signatures: string[]; session: WalletSession }> {
   try {
     return await transact(async (wallet) => {

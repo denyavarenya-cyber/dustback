@@ -1,13 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Button,
-  FlatList,
-  Linking,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import { Button, FlatList, Pressable, Text, View } from 'react-native';
 import { DUST_THRESHOLD_USD } from '../config';
 import {
   classifyDust,
@@ -15,25 +7,13 @@ import {
   tokenUiAmount,
 } from '../core/price';
 import { totalRecoverableLamports } from '../core/scan';
+import {
+  formatAmount,
+  formatSol,
+  formatUsd,
+  shortenAddress,
+} from '../format';
 import { useSweeperStore } from '../store';
-
-export function shortenMint(mint: string): string {
-  return `${mint.slice(0, 4)}…${mint.slice(-4)}`;
-}
-
-function formatUsd(value: number | null): string {
-  if (value === null) return '$—';
-  if (value === 0 || value >= 0.01) return `$${value.toFixed(2)}`;
-  return `$${value.toFixed(4)}`;
-}
-
-function formatAmount(value: number): string {
-  return value >= 1 ? value.toFixed(2) : value.toPrecision(3);
-}
-
-function formatSol(value: number): string {
-  return `${value.toFixed(5)} SOL`;
-}
 
 function estimateLabel(item: PricedBalance): string {
   if (item.quoteStatus === 'pending') return '…';
@@ -69,11 +49,7 @@ export default function ResultsScreen() {
   const onBack = useSweeperStore((s) => s.reset);
   const quoteProgress = useSweeperStore((s) => s.quoteProgress);
   const wallet = useSweeperStore((s) => s.wallet);
-  const sweeping = useSweeperStore((s) => s.sweeping);
-  const confirming = useSweeperStore((s) => s.confirming);
-  const sweepError = useSweeperStore((s) => s.sweepError);
-  const lastSweep = useSweeperStore((s) => s.lastSweep);
-  const sweepRent = useSweeperStore((s) => s.sweepRent);
+  const startReview = useSweeperStore((s) => s.startReview);
   const priced = results?.priced ?? NO_PRICED;
   const { dust, noMarket } = useMemo(
     () => classifyDust(priced, DUST_THRESHOLD_USD),
@@ -93,17 +69,16 @@ export default function ResultsScreen() {
       return next;
     });
 
+  const selectedEmpty = includeEmpty ? emptyAccounts : [];
+  const selectedDust = dust.filter((d) => !excluded.has(d.pubkey));
   const canSweep =
     wallet !== null &&
     wallet.address === results.owner &&
-    includeEmpty &&
-    emptyAccounts.length > 0;
+    selectedEmpty.length + selectedDust.length > 0;
 
   const rentSol = totalRecoverableLamports(emptyAccounts) / 1e9;
   const rentUsd = solPriceUsd === null ? null : rentSol * solPriceUsd;
-  const dustUsd = dust
-    .filter((d) => !excluded.has(d.pubkey))
-    .reduce((sum, d) => sum + (d.usdValue ?? 0), 0);
+  const dustUsd = selectedDust.reduce((sum, d) => sum + (d.usdValue ?? 0), 0);
   const totalUsd = dustUsd + (includeEmpty && rentUsd !== null ? rentUsd : 0);
 
   return (
@@ -155,7 +130,7 @@ export default function ResultsScreen() {
           onToggle={() => toggleDust(item.pubkey)}
         >
           <Text style={{ flex: 1 }} numberOfLines={1}>
-            {shortenMint(item.mint)}
+            {shortenAddress(item.mint)}
           </Text>
           <Text style={{ width: 76, textAlign: 'right' }} numberOfLines={1}>
             {formatAmount(tokenUiAmount(item))}
@@ -179,45 +154,14 @@ export default function ResultsScreen() {
           {canSweep && (
             <View style={{ marginTop: 24 }}>
               <Button
-                title="Sweep rent only"
-                onPress={sweepRent}
-                disabled={sweeping || confirming}
+                title="Sweep"
+                onPress={() =>
+                  startReview({
+                    emptyAccounts: selectedEmpty,
+                    dustTokens: selectedDust,
+                  })
+                }
               />
-            </View>
-          )}
-          {sweeping && <ActivityIndicator style={{ marginTop: 16 }} />}
-          {confirming && (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginTop: 16,
-              }}
-            >
-              <ActivityIndicator />
-              <Text style={{ marginLeft: 8 }}>Confirming…</Text>
-            </View>
-          )}
-          {sweepError && (
-            <Text style={{ color: 'red', marginTop: 16 }}>{sweepError}</Text>
-          )}
-          {lastSweep && (
-            <View style={{ marginTop: 16 }}>
-              <Text style={{ fontWeight: 'bold' }}>
-                Closed {lastSweep.summary.accountsClosed} accounts — you
-                received{' '}
-                {formatSol(lastSweep.summary.userReceivesLamports / 1e9)}, fee{' '}
-                {formatSol(lastSweep.summary.feeLamports / 1e9)}
-              </Text>
-              {lastSweep.signatures.map((sig) => (
-                <Text
-                  key={sig}
-                  style={{ color: '#36c', marginTop: 4, fontSize: 12 }}
-                  onPress={() => Linking.openURL(`https://solscan.io/tx/${sig}`)}
-                >
-                  solscan.io/tx/{shortenMint(sig)}
-                </Text>
-              ))}
             </View>
           )}
           <View style={{ marginTop: 24, marginBottom: 16 }}>

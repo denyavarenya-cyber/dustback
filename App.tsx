@@ -5,14 +5,17 @@ import {
   SafeAreaProvider,
   SafeAreaView,
 } from 'react-native-safe-area-context';
+import DoneScreen from './src/screens/DoneScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
+import ReviewScreen from './src/screens/ReviewScreen';
+import { shortenAddress } from './src/format';
 import { useSweeperStore } from './src/store';
 
 export default function App() {
+  const view = useSweeperStore((s) => s.view);
   const address = useSweeperStore((s) => s.address);
   const loading = useSweeperStore((s) => s.loading);
   const error = useSweeperStore((s) => s.error);
-  const hasResults = useSweeperStore((s) => s.results !== null);
   const wallet = useSweeperStore((s) => s.wallet);
   const connectError = useSweeperStore((s) => s.connectError);
   const setAddress = useSweeperStore((s) => s.setAddress);
@@ -28,9 +31,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, padding: 16 }}>
-        {hasResults ? (
-          <ResultsScreen />
-        ) : (
+        {view === 'results' && <ResultsScreen />}
+        {view === 'review' && <ReviewScreen />}
+        {view === 'done' && <DoneScreen />}
+        {view === 'form' && (
           <>
             <TextInput
               value={address}
@@ -45,8 +49,7 @@ export default function App() {
               {wallet ? (
                 <>
                   <Text style={{ marginBottom: 8 }}>
-                    Connected: {wallet.address.slice(0, 4)}…
-                    {wallet.address.slice(-4)}
+                    Connected: {shortenAddress(wallet.address)}
                   </Text>
                   <Button
                     title="Scan connected wallet"

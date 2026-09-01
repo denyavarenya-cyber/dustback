@@ -27,6 +27,15 @@ function formatSol(value: number): string {
   return `${value.toFixed(5)} SOL`;
 }
 
+function estimateLabel(item: PricedBalance): string {
+  if (item.quoteStatus === 'pending') return '…';
+  if (item.quoteStatus === 'skipped') return 'est. on sweep';
+  if (item.estimatedSolOut !== undefined) {
+    return `≈${formatSol(Number(item.estimatedSolOut) / 1e9)}`;
+  }
+  return '—';
+}
+
 function CheckRow(props: {
   checked: boolean;
   onToggle: () => void;
@@ -50,6 +59,7 @@ const NO_PRICED: PricedBalance[] = [];
 export default function ResultsScreen() {
   const results = useSweeperStore((s) => s.results);
   const onBack = useSweeperStore((s) => s.reset);
+  const quoteProgress = useSweeperStore((s) => s.quoteProgress);
   const priced = results?.priced ?? NO_PRICED;
   const { dust, noMarket } = useMemo(
     () => classifyDust(priced, DUST_THRESHOLD_USD),
@@ -108,6 +118,12 @@ export default function ResultsScreen() {
           <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: 16 }}>
             Dust tokens
           </Text>
+          {quoteProgress !== null &&
+            quoteProgress.done < quoteProgress.total && (
+              <Text style={{ fontSize: 12, color: '#666' }}>
+                Fetching quotes: {quoteProgress.done}/{quoteProgress.total}
+              </Text>
+            )}
           {dust.length === 0 && (
             <Text style={{ color: '#666', paddingVertical: 6 }}>None</Text>
           )}
@@ -128,9 +144,7 @@ export default function ResultsScreen() {
             {formatUsd(item.usdValue)}
           </Text>
           <Text style={{ width: 104, textAlign: 'right', color: '#666' }}>
-            {item.estimatedSolOut !== undefined
-              ? `≈${formatSol(Number(item.estimatedSolOut) / 1e9)}`
-              : '—'}
+            {estimateLabel(item)}
           </Text>
         </CheckRow>
       )}

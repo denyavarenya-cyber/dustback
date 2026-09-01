@@ -10,12 +10,19 @@ const MAX_IDS_PER_PRICE_REQUEST = 50;
 const QUOTE_SLIPPAGE_BPS = 50;
 const REQUEST_INTERVAL_MS = 1100;
 
+/** Quotes are display-only estimates; sweep re-quotes anyway. */
+export const MAX_QUOTE_TARGETS = 30;
+
+export type QuoteStatus = 'pending' | 'done' | 'skipped';
+
 export interface PricedBalance extends TokenBalance {
   priceAvailable: boolean;
   /** null when Jupiter has no reliable price for the mint. */
   usdValue: number | null;
-  /** Raw lamports from the quote endpoint; set only on dust items. */
+  /** Raw lamports from the quote endpoint; filled in during phase 2. */
   estimatedSolOut?: string;
+  /** Set on dust items once quote targets are chosen. */
+  quoteStatus?: QuoteStatus;
 }
 
 export interface DustClassification {
@@ -25,10 +32,13 @@ export interface DustClassification {
 }
 
 export interface PriceOptions {
-  thresholdUsd?: number;
   fetchImpl?: typeof fetch;
   minRequestIntervalMs?: number;
+}
+
+export interface QuoteOptions extends PriceOptions {
   concurrency?: number;
+  signal?: AbortSignal;
 }
 
 export function tokenUiAmount(balance: TokenBalance): number {
@@ -48,6 +58,15 @@ function createThrottle(intervalMs: number) {
       intervalMs > 0 ? slot.then(() => sleep(intervalMs)) : slot;
     return slot.then(task);
   };
+}
+
+// One shared throttle so scan, quotes and the SOL price never overlap.
+const sharedThrottle = createThrottle(REQUEST_INTERVAL_MS);
+
+function throttleFor(opts: PriceOptions) {
+  return opts.minRequestIntervalMs !== undefined
+    ? createThrottle(opts.minRequestIntervalMs)
+    : sharedThrottle;
 }
 
 async function mapWithConcurrency<T>(
@@ -75,10 +94,15 @@ function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-async function fetchUsdPrices(
-  mints: string[],
-  doFetch: (url: string) => Promise<Response>
-): Promise<Map<string, number>> {
+export async function priceTokens(
+  balances: TokenBalance[],
+  opts: PriceOptions = {}
+): Promise<PricedBalance[]> {
+  const { fetchImpl = fetch } = opts;
+  const throttle = throttleFor(opts);
+  const doFetch = (url: string) => throttle(() => fetchImpl(url));
+
+  const mints = [...new Set(balances.map((b) => b.mint))];
   const prices = new Map<string, number>();
   for (const ids of chunk(mints, MAX_IDS_PER_PRICE_REQUEST)) {
     try {
@@ -95,49 +119,8 @@ async function fetchUsdPrices(
       // whole chunk stays unpriced
     }
   }
-  return prices;
-}
 
-async function fetchEstimatedSolOut(
-  item: PricedBalance,
-  doFetch: (url: string) => Promise<Response>
-): Promise<void> {
-  if (item.mint === SOL_MINT) {
-    item.estimatedSolOut = item.amountRaw;
-    return;
-  }
-  try {
-    const url =
-      `${QUOTE_URL}?inputMint=${item.mint}&outputMint=${SOL_MINT}` +
-      `&amount=${item.amountRaw}&slippageBps=${QUOTE_SLIPPAGE_BPS}`;
-    const res = await doFetch(url);
-    if (!res.ok) return;
-    const quote = await res.json();
-    if (typeof quote?.outAmount === 'string') {
-      item.estimatedSolOut = quote.outAmount;
-    }
-  } catch {
-    // display-only estimate; leave unset
-  }
-}
-
-export async function priceTokens(
-  balances: TokenBalance[],
-  opts: PriceOptions = {}
-): Promise<PricedBalance[]> {
-  const {
-    thresholdUsd = DUST_THRESHOLD_USD,
-    fetchImpl = fetch,
-    minRequestIntervalMs = REQUEST_INTERVAL_MS,
-    concurrency = 2,
-  } = opts;
-  const throttle = createThrottle(minRequestIntervalMs);
-  const doFetch = (url: string) => throttle(() => fetchImpl(url));
-
-  const mints = [...new Set(balances.map((b) => b.mint))];
-  const prices = await fetchUsdPrices(mints, doFetch);
-
-  const priced: PricedBalance[] = balances.map((balance) => {
+  return balances.map((balance) => {
     const price = prices.get(balance.mint);
     if (price === undefined) {
       return { ...balance, priceAvailable: false, usdValue: null };
@@ -148,23 +131,57 @@ export async function priceTokens(
       usdValue: tokenUiAmount(balance) * price,
     };
   });
+}
 
-  const dust = priced.filter(
-    (p) => p.priceAvailable && (p.usdValue as number) < thresholdUsd
-  );
-  await mapWithConcurrency(dust, concurrency, (item) =>
-    fetchEstimatedSolOut(item, doFetch)
-  );
+export function selectQuoteTargets(
+  dust: PricedBalance[],
+  max: number = MAX_QUOTE_TARGETS
+): PricedBalance[] {
+  return dust
+    .slice()
+    .sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0))
+    .slice(0, max);
+}
 
-  return priced;
+export async function fetchDustQuotes(
+  targets: PricedBalance[],
+  opts: QuoteOptions,
+  onQuote: (pubkey: string, estimatedSolOut: string | undefined) => void
+): Promise<void> {
+  const { fetchImpl = fetch, concurrency = 2, signal } = opts;
+  const throttle = throttleFor(opts);
+  const doFetch = (url: string) => throttle(() => fetchImpl(url));
+
+  await mapWithConcurrency(targets, concurrency, async (item) => {
+    if (signal?.aborted) return;
+    if (item.mint === SOL_MINT) {
+      onQuote(item.pubkey, item.amountRaw);
+      return;
+    }
+    try {
+      const url =
+        `${QUOTE_URL}?inputMint=${item.mint}&outputMint=${SOL_MINT}` +
+        `&amount=${item.amountRaw}&slippageBps=${QUOTE_SLIPPAGE_BPS}`;
+      const res = await doFetch(url);
+      const quote = res.ok ? await res.json() : null;
+      onQuote(
+        item.pubkey,
+        typeof quote?.outAmount === 'string' ? quote.outAmount : undefined
+      );
+    } catch {
+      onQuote(item.pubkey, undefined);
+    }
+  });
 }
 
 export async function getSolPriceUsd(
-  fetchImpl: typeof fetch = fetch
+  opts: PriceOptions = {}
 ): Promise<number | null> {
+  const { fetchImpl = fetch } = opts;
+  const throttle = throttleFor(opts);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetchImpl(`${PRICE_URL}?ids=${SOL_MINT}`);
+      const res = await throttle(() => fetchImpl(`${PRICE_URL}?ids=${SOL_MINT}`));
       if (res.status === 429 && attempt === 0) {
         await sleep(REQUEST_INTERVAL_MS);
         continue;

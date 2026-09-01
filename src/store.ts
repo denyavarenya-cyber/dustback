@@ -13,6 +13,7 @@ import {
 import { EmptyAccount, scanWallet } from './core/scan';
 import {
   buildCloseTransactions,
+  explainSimulationError,
   SweepSummary,
   waitForConfirmations,
 } from './core/sweep';
@@ -212,6 +213,18 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       const connection = new Connection(RPC_URL, 'confirmed');
       const { blockhash } = await connection.getLatestBlockhash();
       for (const tx of transactions) tx.recentBlockhash = blockhash;
+
+      // fail in-app with a readable message instead of opaquely in the wallet
+      for (const tx of transactions) {
+        const sim = await connection.simulateTransaction(tx);
+        if (sim.value.err != null) {
+          set({
+            sweeping: false,
+            sweepError: explainSimulationError(sim.value.err, sim.value.logs),
+          });
+          return;
+        }
+      }
 
       const { signatures, session } = await signAndSendTransactions(
         wallet,

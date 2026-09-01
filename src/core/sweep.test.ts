@@ -1,6 +1,7 @@
 import { PublicKey, SystemInstruction, SystemProgram } from '@solana/web3.js';
 import {
   buildCloseTransactions,
+  explainSimulationError,
   MAX_CLOSES_PER_TX,
   StatusConnection,
   waitForConfirmations,
@@ -111,6 +112,30 @@ describe('buildCloseTransactions', () => {
         userReceivesLamports: 0,
       },
     });
+  });
+});
+
+describe('explainSimulationError', () => {
+  it('maps an underfunded fee wallet to a clear message', () => {
+    const msg = explainSimulationError(
+      { InsufficientFundsForRent: { account_index: 2 } },
+      []
+    );
+    expect(msg).toMatch(/fee wallet not rent-exempt/);
+  });
+
+  it('falls back to the first meaningful log line', () => {
+    const msg = explainSimulationError({ InstructionError: [0, 'Custom'] }, [
+      'Program TokenkegQ... invoke [1]',
+      'Program log: Error: owner does not match',
+      'Program TokenkegQ... failed',
+    ]);
+    expect(msg).toBe('Program log: Error: owner does not match');
+  });
+
+  it('stringifies the error when logs are unhelpful', () => {
+    const msg = explainSimulationError('AccountNotFound', null);
+    expect(msg).toBe('simulation failed: "AccountNotFound"');
   });
 });
 

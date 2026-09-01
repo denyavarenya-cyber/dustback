@@ -101,6 +101,18 @@ export function buildCloseTransactions(
   return { transactions, summary };
 }
 
+export function explainSimulationError(
+  err: unknown,
+  logs: string[] | null | undefined
+): string {
+  if (JSON.stringify(err)?.includes('InsufficientFundsForRent')) {
+    return 'fee wallet not rent-exempt: fund it once (~0.001 SOL) so it can receive small fee transfers';
+  }
+  const line = logs?.find((l) => /error|failed|insufficient/i.test(l));
+  if (line !== undefined) return line;
+  return `simulation failed: ${JSON.stringify(err)}`;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

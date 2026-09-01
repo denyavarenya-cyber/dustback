@@ -261,6 +261,21 @@ describe('scan pipeline', () => {
     ).toBeLessThan(mockScanWallet.mock.invocationCallOrder[0]);
   });
 
+  it('sweep: blocks the wallet on simulation failure with a readable error', async () => {
+    seedSweepableResults();
+    connectionMock.simulateTransaction.mockResolvedValue({
+      value: { err: { InsufficientFundsForRent: { account_index: 2 } }, logs: [] },
+    });
+
+    await useSweeperStore.getState().sweepRent();
+
+    const state = useSweeperStore.getState();
+    expect(state.sweepError).toMatch(/fee wallet not rent-exempt/);
+    expect(state.sweeping).toBe(false);
+    expect(mockSignAndSend).not.toHaveBeenCalled();
+    expect(mockScanWallet).not.toHaveBeenCalled();
+  });
+
   it('sweep: surfaces an on-chain failure but still rescans', async () => {
     seedSweepableResults();
     connectionMock.getSignatureStatuses.mockResolvedValue({

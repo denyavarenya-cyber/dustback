@@ -5,7 +5,7 @@ export const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
 // Jupiter free tier: no API key, shared 1 req/s limit across all endpoints.
 const PRICE_URL = 'https://lite-api.jup.ag/price/v3';
-const QUOTE_URL = 'https://lite-api.jup.ag/swap/v1/quote';
+export const QUOTE_URL = 'https://lite-api.jup.ag/swap/v1/quote';
 const MAX_IDS_PER_PRICE_REQUEST = 50;
 const QUOTE_SLIPPAGE_BPS = 50;
 const REQUEST_INTERVAL_MS = 1100;
@@ -67,6 +67,16 @@ function throttleFor(opts: PriceOptions) {
   return opts.minRequestIntervalMs !== undefined
     ? createThrottle(opts.minRequestIntervalMs)
     : sharedThrottle;
+}
+
+/** All Jupiter requests outside this module go through the shared throttle. */
+export function jupiterFetch(
+  url: string,
+  init: RequestInit | undefined,
+  opts: PriceOptions = {}
+): Promise<Response> {
+  const { fetchImpl = fetch } = opts;
+  return throttleFor(opts)(() => fetchImpl(url, init));
 }
 
 async function mapWithConcurrency<T>(

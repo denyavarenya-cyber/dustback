@@ -61,6 +61,28 @@ function closeAccountInstruction(
   });
 }
 
+export interface CloseChunk {
+  transaction: Transaction;
+  accounts: EmptyAccount[];
+}
+
+export function buildCloseChunks(
+  emptyAccounts: EmptyAccount[],
+  owner: PublicKey
+): CloseChunk[] {
+  const chunks: CloseChunk[] = [];
+  for (let i = 0; i < emptyAccounts.length; i += MAX_CLOSES_PER_TX) {
+    const accounts = emptyAccounts.slice(i, i + MAX_CLOSES_PER_TX);
+    const tx = new Transaction();
+    tx.feePayer = owner;
+    for (const account of accounts) {
+      tx.add(closeAccountInstruction(account, owner));
+    }
+    chunks.push({ transaction: tx, accounts });
+  }
+  return chunks;
+}
+
 export function buildCloseTransactions(
   emptyAccounts: EmptyAccount[],
   owner: PublicKey,
@@ -79,15 +101,9 @@ export function buildCloseTransactions(
     userReceivesLamports: totalRentLamports - feeLamports,
   };
 
-  const transactions: Transaction[] = [];
-  for (let i = 0; i < emptyAccounts.length; i += MAX_CLOSES_PER_TX) {
-    const tx = new Transaction();
-    tx.feePayer = owner;
-    for (const account of emptyAccounts.slice(i, i + MAX_CLOSES_PER_TX)) {
-      tx.add(closeAccountInstruction(account, owner));
-    }
-    transactions.push(tx);
-  }
+  const transactions = buildCloseChunks(emptyAccounts, owner).map(
+    (chunk) => chunk.transaction
+  );
   if (transactions.length > 0 && feeLamports > 0) {
     transactions[transactions.length - 1].add(
       SystemProgram.transfer({
@@ -115,6 +131,39 @@ export function explainSimulationError(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Per-signature outcomes; keeps polling until every signature is terminal. */
+export async function waitForSignatureOutcomes(
+  connection: StatusConnection,
+  signatures: string[],
+  opts: { timeoutMs?: number; pollIntervalMs?: number } = {}
+): Promise<ConfirmationOutcome[]> {
+  const { timeoutMs = 60000, pollIntervalMs = 1500 } = opts;
+  const deadline = Date.now() + timeoutMs;
+  const outcomes: (ConfirmationOutcome | null)[] = signatures.map(() => null);
+  for (;;) {
+    try {
+      const { value } = await connection.getSignatureStatuses(signatures);
+      value.forEach((status, i) => {
+        if (outcomes[i] !== null) return;
+        if (status?.err != null) outcomes[i] = 'failed';
+        else if (
+          status?.confirmationStatus === 'confirmed' ||
+          status?.confirmationStatus === 'finalized'
+        ) {
+          outcomes[i] = 'confirmed';
+        }
+      });
+    } catch {
+      // transient RPC error: keep polling
+    }
+    if (outcomes.every((o) => o !== null)) {
+      return outcomes as ConfirmationOutcome[];
+    }
+    if (Date.now() >= deadline) return outcomes.map((o) => o ?? 'timeout');
+    if (pollIntervalMs > 0) await sleep(pollIntervalMs);
+  }
 }
 
 export async function waitForConfirmations(

@@ -1,8 +1,12 @@
+import * as Sharing from 'expo-sharing';
+import { useRef } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { formatSol, formatUsd, shortenAddress } from '../format';
 import { SweepItemOutcome, useSweeperStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card } from '../ui';
+import ShareCard from './ShareCard';
 
 const STATUS_LABEL: Record<string, string> = {
   confirmed: 'ok',
@@ -37,8 +41,20 @@ export default function DoneScreen() {
   const t = useTheme();
   const outcome = useSweeperStore((s) => s.outcome);
   const reset = useSweeperStore((s) => s.reset);
+  const cardRef = useRef<View>(null);
 
   if (!outcome) return null;
+
+  const shareResult = async () => {
+    try {
+      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png' });
+      }
+    } catch {
+      // share sheet declined or capture failed: nothing to do
+    }
+  };
   const allOk =
     outcome.items.length > 0 &&
     outcome.items.every((i) => i.status === 'confirmed');
@@ -178,11 +194,25 @@ export default function DoneScreen() {
         </Text>
       )}
 
+      {outcome.recoveredLamports > 0 && (
+        <Btn
+          title="Share result"
+          onPress={shareResult}
+          style={{ marginTop: 20 }}
+        />
+      )}
       <Btn
         title="Scan another wallet"
         variant="secondary"
         onPress={reset}
-        style={{ marginTop: 20, marginBottom: 16 }}
+        style={{ marginTop: 12, marginBottom: 16 }}
+      />
+
+      <ShareCard
+        ref={cardRef}
+        usd={formatUsd(outcome.usdEstimate)}
+        accountsClosed={outcome.closedAccounts}
+        netSol={formatSol(Math.max(0, outcome.recoveredLamports) / 1e9)}
       />
     </ScrollView>
   );

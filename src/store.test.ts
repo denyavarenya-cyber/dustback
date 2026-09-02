@@ -533,6 +533,53 @@ describe('confirmSweep', () => {
     expect(state.outcome).toBeNull();
   });
 
+  it('reset during a hung confirmation never resurrects the done screen', async () => {
+    seedPlan(makePlan([swapItem('mintA', 10000), feeItem()]));
+    const confirmations = deferred();
+    mockWaitOutcomes.mockImplementation(async () => {
+      await confirmations.promise;
+      return ['confirmed'];
+    });
+
+    const sweepPromise = useSweeperStore.getState().confirmSweep();
+    await waitFor(() => useSweeperStore.getState().confirming);
+
+    useSweeperStore.getState().reset();
+    confirmations.resolve();
+    await sweepPromise;
+
+    const state = useSweeperStore.getState();
+    expect(state.view).toBe('form');
+    expect(state.outcome).toBeNull();
+    expect(state.confirming).toBe(false);
+    expect(state.executing).toBe(false);
+  });
+
+  it('a new scan clears any previous outcome and plan', async () => {
+    useSweeperStore.setState({
+      outcome: {
+        items: [],
+        swappedCount: 0,
+        totalSwaps: 0,
+        closedAccounts: 0,
+        totalAccounts: 0,
+        recoveredLamports: 0,
+        feeLamports: 0,
+        feeTaken: false,
+        feePhaseError: null,
+        usdEstimate: null,
+      },
+      plan: makePlan([]),
+    });
+    mockPriceTokens.mockResolvedValue([]);
+    mockFetchDustQuotes.mockResolvedValue(undefined);
+
+    await useSweeperStore.getState().scan();
+
+    expect(useSweeperStore.getState().outcome).toBeNull();
+    expect(useSweeperStore.getState().plan).toBeNull();
+  });
+
   it('rent-only preflight failure stays on review with a readable error', async () => {
     seedPlan(makePlan([closesItem([emptyAccount()], true)]));
     connectionMock.simulateTransaction.mockResolvedValue({

@@ -112,6 +112,8 @@ interface SweeperState {
 
 let quoteAbort: AbortController | null = null;
 let planCounter = 0;
+// invalidates in-flight confirmSweep continuations after reset/cancel
+let sweepEpoch = 0;
 
 export const useSweeperStore = create<SweeperState>((set, get) => ({
   view: 'form',
@@ -153,7 +155,14 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
 
     quoteAbort?.abort();
     const scanId = get().scanId + 1;
-    set({ scanId, loading: true, error: null, quoteProgress: null });
+    set({
+      scanId,
+      loading: true,
+      error: null,
+      quoteProgress: null,
+      outcome: null,
+      plan: null,
+    });
     AsyncStorage.setItem(LAST_ADDRESS_KEY, address).catch(() => {});
 
     try {
@@ -270,12 +279,15 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
 
   cancelReview: () => {
     planCounter++;
+    sweepEpoch++;
     set({ view: 'results', plan: null, planning: false, sweepError: null });
   },
 
   confirmSweep: async () => {
     const { plan, wallet } = get();
     if (!plan || !wallet || plan.transactions.length === 0) return;
+    const epoch = sweepEpoch;
+    const alive = () => sweepEpoch === epoch;
     set({ executing: true, sweepError: null });
     try {
       const connection = new Connection(RPC_URL, 'confirmed');
@@ -305,6 +317,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
           })),
           wallet.address
         );
+        if (!alive()) return;
         console.log(
           `[sweep] rebuilt ${swaps.length} swaps (${skipped.length} skipped) in ${
             Date.now() - buildStart
@@ -347,12 +360,14 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
             `[sweep] swaps sent ${Date.now() - buildStart}ms after build`,
             sent.signatures
           );
+          if (!alive()) return;
           set({ executing: false, confirming: true, wallet: session });
 
           const outcomes = await waitForSignatureOutcomes(
             connection,
             sent.signatures
           );
+          if (!alive()) return;
           console.log('[sweep] swap outcomes', outcomes);
           swaps.forEach((s, i) => {
             const status = outcomes[i] ?? 'timeout';
@@ -389,6 +404,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       let feePhaseError: string | null = null;
 
       if (phase2.transactions.length > 0) {
+        if (!alive()) return;
         set({ executing: true, confirming: false });
         const { blockhash } = await connection.getLatestBlockhash();
         for (const t of phase2.transactions) {
@@ -416,12 +432,14 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
             );
             session = sent2.session;
             sentAnything = true;
+            if (!alive()) return;
             set({ executing: false, confirming: true, wallet: session });
 
             const outcomes2 = await waitForSignatureOutcomes(
               connection,
               sent2.signatures
             );
+            if (!alive()) return;
             console.log('[sweep] phase 2 outcomes', outcomes2);
             phase2.transactions.forEach((t, i) => {
               const status = outcomes2[i] ?? 'timeout';
@@ -462,6 +480,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       if (feeTaken) recoveredLamports -= phase2.feeLamports;
 
       const solPriceUsd = get().results?.solPriceUsd ?? null;
+      if (!alive()) return;
       set({
         executing: false,
         confirming: false,
@@ -484,6 +503,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
         },
       });
     } catch (e) {
+      if (!alive()) return;
       set({
         executing: false,
         confirming: false,
@@ -495,6 +515,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
   reset: () => {
     quoteAbort?.abort();
     planCounter++;
+    sweepEpoch++;
     set((state) => ({
       view: 'form',
       results: null,

@@ -7,12 +7,7 @@ import {
   tokenUiAmount,
 } from '../core/price';
 import { totalRecoverableLamports } from '../core/scan';
-import {
-  formatAmount,
-  formatSol,
-  formatUsd,
-  shortenAddress,
-} from '../format';
+import { formatAmount, formatSol, formatUsd, tokenLabel } from '../format';
 import { useSweeperStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card } from '../ui';
@@ -194,7 +189,7 @@ export default function ResultsScreen() {
             onToggle={() => toggleDust(item.pubkey)}
           >
             <Text style={{ color: t.text, flex: 1 }} numberOfLines={1}>
-              {shortenAddress(item.mint)}
+              {tokenLabel(item.mint, results.symbols)}
             </Text>
             <Text
               style={{ color: t.text, width: 74, textAlign: 'right' }}

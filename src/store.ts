@@ -11,6 +11,7 @@ import {
   selectQuoteTargets,
 } from './core/price';
 import { EmptyAccount, scanWallet } from './core/scan';
+import { fetchTokenSymbols } from './core/tokens';
 import {
   ConfirmationOutcome,
   explainSimulationError,
@@ -37,6 +38,7 @@ export interface ScanResults {
   emptyAccounts: EmptyAccount[];
   priced: PricedBalance[];
   solPriceUsd: number | null;
+  symbols: Record<string, string>;
 }
 
 export interface QuoteProgress {
@@ -170,6 +172,9 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       const scan = await scanWallet(connection, owner);
       const priced = await priceTokens(scan.nonEmptyAccounts);
       const solPriceUsd = await getSolPriceUsd();
+      const symbols = await fetchTokenSymbols(
+        scan.nonEmptyAccounts.map((b) => b.mint)
+      );
       if (get().scanId !== scanId) return;
 
       const { dust } = classifyDust(priced);
@@ -190,6 +195,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
           emptyAccounts: scan.emptyAccounts,
           priced: marked,
           solPriceUsd,
+          symbols,
         },
         loading: false,
         quoteProgress: { done: 0, total: targets.length },

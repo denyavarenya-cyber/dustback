@@ -13,6 +13,7 @@ import {
   formatSol,
   formatUsd,
   shortenAddress,
+  tokenLabel,
 } from '../format';
 import { useSweeperStore } from '../store';
 import { useTheme } from '../theme';
@@ -29,6 +30,7 @@ export default function ReviewScreen() {
   const sweepError = useSweeperStore((s) => s.sweepError);
   const cancelReview = useSweeperStore((s) => s.cancelReview);
   const confirmSweep = useSweeperStore((s) => s.confirmSweep);
+  const symbols = useSweeperStore((s) => s.results?.symbols);
   const [showDetails, setShowDetails] = useState(false);
 
   const busy = executing || confirming;
@@ -91,7 +93,7 @@ export default function ReviewScreen() {
                       key={i}
                       style={{ color: t.text, fontSize: 13, marginTop: 4 }}
                     >
-                      Swap {shortenAddress(item.mint)} —{' '}
+                      Swap {tokenLabel(item.mint, symbols)} —{' '}
                       {formatAmount(
                         tokenUiAmount({
                           pubkey: item.pubkey,

@@ -2,7 +2,12 @@ import * as Sharing from 'expo-sharing';
 import { useRef } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
-import { formatSol, formatUsd, shortenAddress } from '../format';
+import {
+  formatSol,
+  formatUsd,
+  shortenAddress,
+  tokenLabel,
+} from '../format';
 import { SweepItemOutcome, useSweeperStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card } from '../ui';
@@ -14,18 +19,18 @@ const STATUS_LABEL: Record<string, string> = {
   timeout: 'not confirmed',
 };
 
-function itemLabel(item: SweepItemOutcome): string {
+function itemLabel(
+  item: SweepItemOutcome,
+  symbols?: Record<string, string>
+): string {
   if (item.kind === 'swap') {
+    const label = tokenLabel(item.mint, symbols);
     if (item.signature === '') {
-      return `Swap ${shortenAddress(item.mint)} — no quote available`;
+      return `Swap ${label} — no quote available`;
     }
     return item.status === 'confirmed'
-      ? `Swap ${shortenAddress(item.mint)} → ${formatSol(
-          item.quotedSolOut / 1e9
-        )}`
-      : `Swap ${shortenAddress(item.mint)} → ≈${formatSol(
-          item.quotedSolOut / 1e9
-        )} (quoted)`;
+      ? `Swap ${label} → ${formatSol(item.quotedSolOut / 1e9)}`
+      : `Swap ${label} → ≈${formatSol(item.quotedSolOut / 1e9)} (quoted)`;
   }
   if (item.kind === 'closes') {
     return `Close ${item.accounts} ${
@@ -41,6 +46,7 @@ export default function DoneScreen() {
   const t = useTheme();
   const outcome = useSweeperStore((s) => s.outcome);
   const reset = useSweeperStore((s) => s.reset);
+  const symbols = useSweeperStore((s) => s.results?.symbols);
   const cardRef = useRef<View>(null);
 
   if (!outcome) return null;
@@ -165,7 +171,7 @@ export default function DoneScreen() {
               >
                 {item.status === 'confirmed' ? '✓' : '✕'}
               </Text>{' '}
-              {itemLabel(item)} —{' '}
+              {itemLabel(item, symbols)} —{' '}
               <Text
                 style={{
                   color: item.status === 'confirmed' ? t.accent : t.danger,

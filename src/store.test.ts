@@ -25,6 +25,10 @@ jest.mock('./core/wallet', () => ({
   signAndSendTransactions: jest.fn(),
 }));
 
+jest.mock('./core/tokens', () => ({
+  fetchTokenSymbols: jest.fn(async () => ({})),
+}));
+
 jest.mock('./core/swap', () => ({
   ...jest.requireActual('./core/swap'),
   buildSweepPlan: jest.fn(),
@@ -339,6 +343,7 @@ function seedPlan(plan: SweepPlan) {
       emptyAccounts: [],
       priced: [],
       solPriceUsd: 100,
+      symbols: {},
     },
     plan,
   });
@@ -613,6 +618,7 @@ describe('startReview', () => {
         emptyAccounts: [],
         priced: [],
         solPriceUsd: 100,
+        symbols: {},
       },
     });
     const building = deferred();

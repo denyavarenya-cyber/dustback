@@ -118,10 +118,7 @@ export async function signAndSendTransactions(
       throw new WalletSignError('declined', 'Request declined in wallet');
     }
     if (kind === 'session') {
-      throw new WalletSignError(
-        'session',
-        'Wallet session failed — reconnect and try again'
-      );
+      throw new WalletSignError('session', 'Wallet session failed. Try again.');
     }
     throw e;
   }

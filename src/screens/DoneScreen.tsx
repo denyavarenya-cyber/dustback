@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
 function itemLabel(item: SweepItemOutcome): string {
   if (item.kind === 'swap') {
     if (item.signature === '') {
-      return `Swap ${shortenAddress(item.mint)} — could not build`;
+      return `Swap ${shortenAddress(item.mint)} — no quote available`;
     }
     return item.status === 'confirmed'
       ? `Swap ${shortenAddress(item.mint)} → ${formatSol(
@@ -146,7 +146,7 @@ export default function DoneScreen() {
 
       {outcome.feePhaseError !== null && (
         <Text style={{ color: t.danger, marginTop: 8 }}>
-          Closing accounts / fee step did not run: {outcome.feePhaseError}
+          Account closes and fee were not sent: {outcome.feePhaseError}
         </Text>
       )}
 

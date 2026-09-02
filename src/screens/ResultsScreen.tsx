@@ -19,7 +19,7 @@ import { Btn, Card } from '../ui';
 
 function estimateLabel(item: PricedBalance): string {
   if (item.quoteStatus === 'pending') return '…';
-  if (item.quoteStatus === 'skipped') return 'est. on sweep';
+  if (item.quoteStatus === 'skipped') return 'quote at sweep';
   if (item.estimatedSolOut !== undefined) {
     return `≈${formatSol(Number(item.estimatedSolOut) / 1e9)}`;
   }

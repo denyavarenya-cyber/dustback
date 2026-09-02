@@ -122,7 +122,7 @@ describe('explainSimulationError', () => {
       { InsufficientFundsForRent: { account_index: 2 } },
       []
     );
-    expect(msg).toMatch(/fee wallet not rent-exempt/);
+    expect(msg).toMatch(/not rent-exempt/);
   });
 
   it('falls back to the first meaningful log line', () => {
@@ -136,7 +136,7 @@ describe('explainSimulationError', () => {
 
   it('stringifies the error when logs are unhelpful', () => {
     const msg = explainSimulationError('AccountNotFound', null);
-    expect(msg).toBe('simulation failed: "AccountNotFound"');
+    expect(msg).toBe('Simulation failed: "AccountNotFound"');
   });
 });
 

@@ -222,7 +222,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
     } catch (e) {
       if (get().scanId !== scanId) return;
       set({
-        error: e instanceof Error ? e.message : 'Scan failed',
+        error: 'Scan failed — check your connection and try again.',
         loading: false,
       });
     }
@@ -235,13 +235,14 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       if (result.status === 'connected') {
         set({ wallet: result.session });
       } else if (result.status === 'no-wallet') {
-        set({ connectError: 'No compatible wallet app installed' });
+        set({
+          connectError:
+            'No compatible wallet app found. Install Solflare or Phantom, then try again.',
+        });
       }
       // cancelled: stay on the form silently
-    } catch (e) {
-      set({
-        connectError: e instanceof Error ? e.message : 'Connect failed',
-      });
+    } catch {
+      set({ connectError: 'Could not connect to the wallet. Try again.' });
     }
   },
 
@@ -272,7 +273,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       if (planCounter !== planId || get().view !== 'review') return;
       set({
         planning: false,
-        sweepError: e instanceof Error ? e.message : 'Failed to build plan',
+        sweepError: 'Could not fetch quotes. Go back and try again.',
       });
     }
   },
@@ -466,7 +467,9 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
             if (!sentAnything) throw e;
             // swaps are already final; report instead of pretending
             feePhaseError =
-              e instanceof Error ? e.message : 'Fee transaction not sent';
+              e instanceof Error && e.name === 'WalletSignError'
+                ? e.message
+                : 'the fee transaction could not be sent';
           }
         }
       }
@@ -507,7 +510,10 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       set({
         executing: false,
         confirming: false,
-        sweepError: e instanceof Error ? e.message : 'Sweep failed',
+        sweepError:
+          e instanceof Error && e.name === 'WalletSignError'
+            ? e.message
+            : 'Sweep failed. Nothing was signed — try again.',
       });
     }
   },

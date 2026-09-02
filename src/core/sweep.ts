@@ -122,11 +122,11 @@ export function explainSimulationError(
   logs: string[] | null | undefined
 ): string {
   if (JSON.stringify(err)?.includes('InsufficientFundsForRent')) {
-    return 'fee wallet not rent-exempt: fund it once (~0.001 SOL) so it can receive small fee transfers';
+    return 'Fee wallet is not rent-exempt — fund it once (~0.001 SOL) so it can receive fees.';
   }
   const line = logs?.find((l) => /error|failed|insufficient/i.test(l));
   if (line !== undefined) return line;
-  return `simulation failed: ${JSON.stringify(err)}`;
+  return `Simulation failed: ${JSON.stringify(err)}`;
 }
 
 function sleep(ms: number): Promise<void> {

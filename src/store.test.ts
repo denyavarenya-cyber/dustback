@@ -504,7 +504,11 @@ describe('confirmSweep', () => {
         signatures: txs.map((_, i) => `p1-${i}`),
         session: { address: OWNER_B58, authToken: 'token-2' },
       }))
-      .mockRejectedValueOnce(new Error('Request declined in wallet'));
+      .mockRejectedValueOnce(
+        Object.assign(new Error('Request declined in wallet'), {
+          name: 'WalletSignError',
+        })
+      );
 
     await useSweeperStore.getState().confirmSweep();
 
@@ -593,7 +597,7 @@ describe('confirmSweep', () => {
 
     const state = useSweeperStore.getState();
     expect(state.view).toBe('review');
-    expect(state.sweepError).toMatch(/fee wallet not rent-exempt/);
+    expect(state.sweepError).toMatch(/not rent-exempt/);
     expect(mockSignAndSend).not.toHaveBeenCalled();
     expect(state.outcome).toBeNull();
   });

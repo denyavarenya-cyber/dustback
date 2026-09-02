@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.sweeper.app'
+    namespace 'app.dustback'
     defaultConfig {
-        applicationId 'com.sweeper.app'
+        applicationId 'app.dustback'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

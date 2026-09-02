@@ -1,4 +1,4 @@
-package com.sweeper.app
+package app.dustback
 
 import android.app.Application
 import android.content.res.Configuration

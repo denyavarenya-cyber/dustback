@@ -1,5 +1,5 @@
 {
-  "name": "sweeper",
+  "name": "dustback",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
@@ -10,6 +10,7 @@
     "buffer": "^6.0.3",
     "expo": "~57.0.18",
     "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.3",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-get-random-values": "~1.11.0",

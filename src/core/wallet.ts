@@ -6,8 +6,8 @@ import {
 } from '@solana/web3.js';
 
 const APP_IDENTITY = {
-  name: 'Sweeper',
-  uri: 'https://sweeper.app',
+  name: 'DustBack',
+  uri: 'https://dustback.app',
   icon: 'favicon.png',
 };
 const CHAIN = 'solana:mainnet-beta';

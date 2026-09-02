@@ -28,7 +28,7 @@ import {
   WalletSession,
 } from './core/wallet';
 
-const LAST_ADDRESS_KEY = 'sweeper:lastAddress';
+const LAST_ADDRESS_KEY = 'dustback:lastAddress';
 
 export type View = 'form' | 'results' | 'review' | 'done';
 

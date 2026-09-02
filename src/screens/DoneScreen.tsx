@@ -1,6 +1,8 @@
-import { Button, Linking, ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { formatSol, formatUsd, shortenAddress } from '../format';
 import { SweepItemOutcome, useSweeperStore } from '../store';
+import { useTheme } from '../theme';
+import { Btn, Card } from '../ui';
 
 const STATUS_LABEL: Record<string, string> = {
   confirmed: 'ok',
@@ -10,11 +12,16 @@ const STATUS_LABEL: Record<string, string> = {
 
 function itemLabel(item: SweepItemOutcome): string {
   if (item.kind === 'swap') {
-    return item.signature === ''
-      ? `Swap ${shortenAddress(item.mint)} — could not build`
+    if (item.signature === '') {
+      return `Swap ${shortenAddress(item.mint)} — could not build`;
+    }
+    return item.status === 'confirmed'
+      ? `Swap ${shortenAddress(item.mint)} → ${formatSol(
+          item.quotedSolOut / 1e9
+        )}`
       : `Swap ${shortenAddress(item.mint)} → ≈${formatSol(
           item.quotedSolOut / 1e9
-        )}`;
+        )} (quoted)`;
   }
   if (item.kind === 'closes') {
     return `Close ${item.accounts} ${
@@ -27,6 +34,7 @@ function itemLabel(item: SweepItemOutcome): string {
 }
 
 export default function DoneScreen() {
+  const t = useTheme();
   const outcome = useSweeperStore((s) => s.outcome);
   const reset = useSweeperStore((s) => s.reset);
 
@@ -37,50 +45,56 @@ export default function DoneScreen() {
   const swapsAllFailed = outcome.totalSwaps > 0 && outcome.swappedCount === 0;
   const nothingHappened = swapsAllFailed && outcome.closedAccounts === 0;
 
-  const header = nothingHappened
-    ? 'Sweep failed'
-    : allOk
-      ? 'Sweep complete'
-      : 'Sweep partially complete';
-
   return (
-    <ScrollView>
-      <Text
-        style={{
-          fontSize: 24,
-          fontWeight: 'bold',
-          marginTop: 8,
-          color: nothingHappened ? '#c33' : allOk ? '#2a7' : '#c60',
-        }}
-      >
-        {header}
-      </Text>
-
-      {swapsAllFailed && (
-        <View
-          style={{
-            backgroundColor: '#fdd',
-            borderColor: '#c33',
-            borderWidth: 1,
-            borderRadius: 4,
-            padding: 12,
-            marginTop: 12,
-          }}
-        >
-          <Text style={{ color: '#911', fontWeight: 'bold', fontSize: 16 }}>
-            Nothing was swapped
+    <ScrollView showsVerticalScrollIndicator={false}>
+      {nothingHappened ? (
+        <Card tint="danger">
+          <Text style={{ color: t.danger, fontSize: 22, fontWeight: '700' }}>
+            Sweep failed
           </Text>
-          <Text style={{ color: '#911', marginTop: 4 }}>
-            Your tokens are still in the wallet. No swap fee was taken.
+          <Text style={{ color: t.danger, marginTop: 6, lineHeight: 20 }}>
+            Nothing was swapped. Your tokens are still in the wallet. No fee
+            was taken.
           </Text>
-        </View>
+        </Card>
+      ) : (
+        <Card tint="success">
+          <Text style={{ color: t.textSecondary, fontSize: 14 }}>
+            Recovered
+          </Text>
+          <Text style={{ color: t.accent, fontSize: 40, fontWeight: '700' }}>
+            {formatSol(Math.max(0, outcome.recoveredLamports) / 1e9)}
+          </Text>
+          <Text style={{ color: t.textSecondary, fontSize: 15 }}>
+            ~{formatUsd(outcome.usdEstimate)} returned to your wallet
+          </Text>
+        </Card>
       )}
 
-      <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 16 }}>
+      {swapsAllFailed && !nothingHappened && (
+        <Card tint="danger" style={{ marginTop: 12 }}>
+          <Text style={{ color: t.danger, fontWeight: '700', fontSize: 15 }}>
+            Nothing was swapped
+          </Text>
+          <Text style={{ color: t.danger, marginTop: 4 }}>
+            Your tokens are still in the wallet. No swap fee was taken.
+          </Text>
+        </Card>
+      )}
+
+      <Text
+        style={{
+          color: t.text,
+          fontSize: 17,
+          fontWeight: '600',
+          marginTop: 18,
+        }}
+      >
         Swapped{' '}
         <Text
           style={{
-            color: outcome.swappedCount < outcome.totalSwaps ? '#c33' : '#2a7',
+            color:
+              outcome.swappedCount < outcome.totalSwaps ? t.danger : t.accent,
           }}
         >
           {outcome.swappedCount} of {outcome.totalSwaps}
@@ -90,8 +104,8 @@ export default function DoneScreen() {
           style={{
             color:
               outcome.closedAccounts < outcome.totalAccounts
-                ? '#c33'
-                : '#2a7',
+                ? t.danger
+                : t.accent,
           }}
         >
           {outcome.closedAccounts} of {outcome.totalAccounts}
@@ -99,13 +113,14 @@ export default function DoneScreen() {
         {outcome.totalAccounts === 1 ? 'account' : 'accounts'}.
       </Text>
 
-      <Text style={{ fontSize: 14, marginTop: 8 }}>
-        Recovered ≈{formatSol(Math.max(0, outcome.recoveredLamports) / 1e9)} (~
-        {formatUsd(outcome.usdEstimate)}). Swap amounts are quoted values; rent
-        is actual.
-      </Text>
-
-      <Text style={{ fontSize: 14, marginTop: 4, fontWeight: 'bold' }}>
+      <Text
+        style={{
+          color: t.text,
+          fontSize: 14,
+          marginTop: 6,
+          fontWeight: '700',
+        }}
+      >
         {outcome.feeTaken
           ? `Fee taken: ${formatSol(
               outcome.feeLamports / 1e9
@@ -114,20 +129,30 @@ export default function DoneScreen() {
       </Text>
 
       {outcome.feePhaseError !== null && (
-        <Text style={{ color: '#c33', marginTop: 8 }}>
+        <Text style={{ color: t.danger, marginTop: 8 }}>
           Closing accounts / fee step did not run: {outcome.feePhaseError}
         </Text>
       )}
 
-      <View style={{ marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
         {outcome.items.map((item, index) => (
-          <View key={`${item.signature}-${index}`} style={{ marginTop: 8 }}>
-            <Text style={{ fontSize: 13 }}>
+          <View
+            key={`${item.signature}-${index}`}
+            style={{ marginTop: index === 0 ? 0 : 10 }}
+          >
+            <Text style={{ color: t.text, fontSize: 13 }}>
+              <Text
+                style={{
+                  color: item.status === 'confirmed' ? t.accent : t.danger,
+                  fontWeight: '700',
+                }}
+              >
+                {item.status === 'confirmed' ? '✓' : '✕'}
+              </Text>{' '}
               {itemLabel(item)} —{' '}
               <Text
                 style={{
-                  color: item.status === 'confirmed' ? '#2a7' : '#c33',
-                  fontWeight: 'bold',
+                  color: item.status === 'confirmed' ? t.accent : t.danger,
                 }}
               >
                 {STATUS_LABEL[item.status]}
@@ -135,7 +160,7 @@ export default function DoneScreen() {
             </Text>
             {item.signature !== '' && (
               <Text
-                style={{ color: '#36c', fontSize: 12 }}
+                style={{ color: t.accent, fontSize: 12, marginTop: 2 }}
                 onPress={() =>
                   Linking.openURL(`https://solscan.io/tx/${item.signature}`)
                 }
@@ -145,17 +170,20 @@ export default function DoneScreen() {
             )}
           </View>
         ))}
-      </View>
+      </Card>
 
       {swapsAllFailed && (
-        <Text style={{ color: '#666', marginTop: 16, fontSize: 13 }}>
+        <Text style={{ color: t.textSecondary, marginTop: 14, fontSize: 13 }}>
           Scan again to retry — failed swaps left the tokens untouched.
         </Text>
       )}
 
-      <View style={{ marginTop: 24, marginBottom: 16 }}>
-        <Button title="Scan another wallet" onPress={reset} />
-      </View>
+      <Btn
+        title="Scan another wallet"
+        variant="secondary"
+        onPress={reset}
+        style={{ marginTop: 20, marginBottom: 16 }}
+      />
     </ScrollView>
   );
 }

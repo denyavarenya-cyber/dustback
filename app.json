@@ -3,7 +3,7 @@
     "name": "DustBack",
     "slug": "dustback",
     "scheme": "dustback",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "app.dustback",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#0F7A80",
         "foregroundImage": "./assets/adaptive-icon.png",

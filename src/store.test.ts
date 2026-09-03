@@ -1,11 +1,28 @@
 import { PublicKey } from '@solana/web3.js';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  __esModule: true,
-  default: {
-    getItem: jest.fn(async () => null),
-    setItem: jest.fn(async () => {}),
-  },
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const memory = new Map<string, string>();
+  return {
+    __esModule: true,
+    default: {
+      getItem: jest.fn(async (key: string) => memory.get(key) ?? null),
+      setItem: jest.fn(async (key: string, value: string) => {
+        memory.set(key, value);
+      }),
+    },
+    __memory: memory,
+  };
+});
+
+const storageMemory = (
+  jest.requireMock('@react-native-async-storage/async-storage') as {
+    __memory: Map<string, string>;
+  }
+).__memory;
+
+jest.mock('expo-store-review', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  requestReview: jest.fn(async () => {}),
 }));
 
 jest.mock('./core/scan', () => ({
@@ -64,7 +81,9 @@ const connectionMock = (
   }
 ).__connectionMock;
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SystemInstruction, Transaction } from '@solana/web3.js';
+import * as StoreReview from 'expo-store-review';
 import {
   fetchDustQuotes,
   getSolPriceUsd,
@@ -144,6 +163,7 @@ async function waitFor(cond: () => boolean): Promise<void> {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  storageMemory.clear();
   useSweeperStore.setState({
     view: 'form',
     address: ADDRESS,
@@ -605,6 +625,76 @@ describe('confirmSweep', () => {
     expect(state.sweepError).toMatch(/not rent-exempt/);
     expect(mockSignAndSend).not.toHaveBeenCalled();
     expect(state.outcome).toBeNull();
+  });
+});
+
+describe('review prompt', () => {
+  const COUNT_KEY = 'dustback:successfulSweeps';
+  const FLAG_KEY = 'dustback:reviewRequested';
+  const mockRequestReview = StoreReview.requestReview as jest.Mock;
+
+  it('increments the counter only on sweeps with a confirmed item', async () => {
+    seedPlan(makePlan([closesItem([emptyAccount()], true)]));
+    await useSweeperStore.getState().confirmSweep();
+    expect(storageMemory.get(COUNT_KEY)).toBe('1');
+
+    seedPlan(makePlan([closesItem([emptyAccount()], true)]));
+    await useSweeperStore.getState().confirmSweep();
+    expect(storageMemory.get(COUNT_KEY)).toBe('2');
+  });
+
+  it('does not increment when nothing confirmed', async () => {
+    seedPlan(makePlan([swapItem('mintA', 10000), feeItem()]));
+    mockWaitOutcomes.mockResolvedValueOnce(['timeout']);
+
+    await useSweeperStore.getState().confirmSweep();
+
+    expect(useSweeperStore.getState().view).toBe('done');
+    expect(storageMemory.has(COUNT_KEY)).toBe(false);
+  });
+
+  it('fires exactly once when the counter is exactly 2', async () => {
+    storageMemory.set(COUNT_KEY, '1');
+    await useSweeperStore.getState().maybeRequestReview();
+    expect(mockRequestReview).not.toHaveBeenCalled();
+
+    storageMemory.set(COUNT_KEY, '2');
+    await useSweeperStore.getState().maybeRequestReview();
+    expect(mockRequestReview).toHaveBeenCalledTimes(1);
+    expect(storageMemory.get(FLAG_KEY)).toBe('true');
+
+    await useSweeperStore.getState().maybeRequestReview();
+    expect(mockRequestReview).toHaveBeenCalledTimes(1);
+
+    storageMemory.set(COUNT_KEY, '3');
+    storageMemory.delete(FLAG_KEY);
+    await useSweeperStore.getState().maybeRequestReview();
+    expect(mockRequestReview).toHaveBeenCalledTimes(1);
+  });
+
+  it('never fires when the flag is already set', async () => {
+    storageMemory.set(COUNT_KEY, '2');
+    storageMemory.set(FLAG_KEY, 'true');
+    await useSweeperStore.getState().maybeRequestReview();
+    expect(mockRequestReview).not.toHaveBeenCalled();
+  });
+
+  it('storage failure degrades silently and never blocks done', async () => {
+    storageMemory.set(COUNT_KEY, '2');
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(
+      new Error('storage down')
+    );
+    await expect(
+      useSweeperStore.getState().maybeRequestReview()
+    ).resolves.toBeUndefined();
+    expect(mockRequestReview).not.toHaveBeenCalled();
+
+    seedPlan(makePlan([closesItem([emptyAccount()], true)]));
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(
+      new Error('storage down')
+    );
+    await useSweeperStore.getState().confirmSweep();
+    expect(useSweeperStore.getState().view).toBe('done');
   });
 });
 

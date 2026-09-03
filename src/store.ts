@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Connection, PublicKey } from '@solana/web3.js';
+import * as StoreReview from 'expo-store-review';
 import { create } from 'zustand';
 import { FEE_BPS, FEE_WALLET, RPC_URL } from './config';
 import {
@@ -30,6 +31,18 @@ import {
 } from './core/wallet';
 
 const LAST_ADDRESS_KEY = 'dustback:lastAddress';
+const SWEEP_COUNT_KEY = 'dustback:successfulSweeps';
+const REVIEW_REQUESTED_KEY = 'dustback:reviewRequested';
+
+async function recordSuccessfulSweep(): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(SWEEP_COUNT_KEY);
+    const count = (Number(raw) || 0) + 1;
+    await AsyncStorage.setItem(SWEEP_COUNT_KEY, String(count));
+  } catch {
+    // review prompt is best-effort; never block the sweep
+  }
+}
 
 export type View = 'form' | 'results' | 'review' | 'done';
 
@@ -109,6 +122,7 @@ interface SweeperState {
   startReview: (selected: SweepSelectionInput) => Promise<void>;
   cancelReview: () => void;
   confirmSweep: () => Promise<void>;
+  maybeRequestReview: () => Promise<void>;
   reset: () => void;
 }
 
@@ -488,6 +502,10 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       }
       if (feeTaken) recoveredLamports -= phase2.feeLamports;
 
+      if (items.some((i) => i.status === 'confirmed')) {
+        await recordSuccessfulSweep();
+      }
+
       const solPriceUsd = get().results?.solPriceUsd ?? null;
       if (!alive()) return;
       set({
@@ -521,6 +539,23 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
             ? e.message
             : 'Sweep failed. Nothing was signed — try again.',
       });
+    }
+  },
+
+  maybeRequestReview: async () => {
+    try {
+      if ((await AsyncStorage.getItem(REVIEW_REQUESTED_KEY)) === 'true') {
+        return;
+      }
+      const count = Number(await AsyncStorage.getItem(SWEEP_COUNT_KEY)) || 0;
+      if (count !== 2) return;
+      // flag first: single-shot even if the request itself throws
+      await AsyncStorage.setItem(REVIEW_REQUESTED_KEY, 'true');
+      if (await StoreReview.isAvailableAsync()) {
+        await StoreReview.requestReview();
+      }
+    } catch {
+      // silent no-op on quota, sideloads or storage failure
     }
   },
 

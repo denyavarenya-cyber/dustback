@@ -1,5 +1,5 @@
 import * as Sharing from 'expo-sharing';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import {
@@ -47,7 +47,12 @@ export default function DoneScreen() {
   const outcome = useSweeperStore((s) => s.outcome);
   const reset = useSweeperStore((s) => s.reset);
   const symbols = useSweeperStore((s) => s.results?.symbols);
+  const maybeRequestReview = useSweeperStore((s) => s.maybeRequestReview);
   const cardRef = useRef<View>(null);
+
+  useEffect(() => {
+    maybeRequestReview();
+  }, [maybeRequestReview]);
 
   if (!outcome) return null;
 

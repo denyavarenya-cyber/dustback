@@ -642,6 +642,20 @@ describe('connect troubleshooting', () => {
     expect(state.wallet).toBeNull();
   });
 
+  it('clears a stored auth token when connect is interrupted', async () => {
+    useSweeperStore.setState({
+      wallet: { address: 'addr', authToken: 'stale' },
+    });
+    mockConnect.mockResolvedValue({ status: 'interrupted' });
+
+    await useSweeperStore.getState().connectWallet();
+
+    expect(useSweeperStore.getState().wallet).toEqual({
+      address: 'addr',
+      authToken: '',
+    });
+  });
+
   it('clears the outcome on retry and connects', async () => {
     mockConnect.mockResolvedValueOnce({ status: 'interrupted' });
     await useSweeperStore.getState().connectWallet();
@@ -691,11 +705,15 @@ describe('connect troubleshooting', () => {
     expect(state.view).toBe('review');
     expect(state.sweepInterrupted).toBe(true);
     expect(state.sweepError).toMatch(/session failed/);
+    // dead session: token dropped so the retry authorizes fresh
+    expect(state.wallet?.authToken).toBe('');
 
     await useSweeperStore.getState().confirmSweep();
     state = useSweeperStore.getState();
     expect(state.sweepInterrupted).toBe(false);
     expect(state.view).toBe('done');
+    // the retry was handed the cleared token, not the stale one
+    expect(mockSignAndSend.mock.calls[1][0].authToken).toBe('');
   });
 
   it('a decline during signing does not mark interrupted', async () => {

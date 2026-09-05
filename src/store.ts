@@ -265,7 +265,11 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
             'No compatible wallet app found. Install Solflare or Phantom, then try again.',
         });
       } else if (result.status === 'interrupted') {
-        set({ connectInterrupted: true });
+        // drop the token so the next attempt authorizes fresh
+        set((state) => ({
+          connectInterrupted: true,
+          wallet: state.wallet ? { ...state.wallet, authToken: '' } : null,
+        }));
       }
       // cancelled: stay on the form silently
     } catch {
@@ -549,15 +553,21 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
     } catch (e) {
       if (!alive()) return;
       const isWalletError = e instanceof Error && e.name === 'WalletSignError';
-      set({
+      const interrupted =
+        isWalletError && (e as { kind?: string }).kind === 'session';
+      set((state) => ({
         executing: false,
         confirming: false,
-        sweepInterrupted:
-          isWalletError && (e as { kind?: string }).kind === 'session',
+        sweepInterrupted: interrupted,
+        // dead session: clear the token so the retry authorizes fresh
+        wallet:
+          interrupted && state.wallet
+            ? { ...state.wallet, authToken: '' }
+            : state.wallet,
         sweepError: isWalletError
           ? e.message
           : 'Sweep failed. Nothing was signed — try again.',
-      });
+      }));
     }
   },
 

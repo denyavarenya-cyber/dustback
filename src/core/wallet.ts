@@ -95,12 +95,18 @@ export async function signAndSendTransactions(
 ): Promise<{ signatures: string[]; session: WalletSession }> {
   try {
     return await transact(async (wallet) => {
-      const auth = await wallet
-        .reauthorize({ auth_token: session.authToken, identity: APP_IDENTITY })
-        .catch(() =>
-          // stale or invalidated token: fresh authorization in the same session
-          wallet.authorize({ identity: APP_IDENTITY, chain: CHAIN })
-        );
+      // an empty token means the last session was interrupted: authorize
+      // fresh instead of reauthorizing into a dead session
+      const auth = session.authToken
+        ? await wallet
+            .reauthorize({
+              auth_token: session.authToken,
+              identity: APP_IDENTITY,
+            })
+            .catch(() =>
+              wallet.authorize({ identity: APP_IDENTITY, chain: CHAIN })
+            )
+        : await wallet.authorize({ identity: APP_IDENTITY, chain: CHAIN });
       const signatures = await wallet.signAndSendTransactions({ transactions });
       return {
         signatures,

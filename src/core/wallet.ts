@@ -20,23 +20,23 @@ export interface WalletSession {
 export type ConnectResult =
   | { status: 'connected'; session: WalletSession }
   | { status: 'cancelled' }
-  | { status: 'no-wallet' };
+  | { status: 'no-wallet' }
+  | { status: 'interrupted' };
 
 function base64AddressToBase58(address: string): string {
   return new PublicKey(Buffer.from(address, 'base64')).toBase58();
 }
 
-function classify(e: unknown): 'no-wallet' | 'cancelled' | null {
+/** Anything that is not a wallet-missing or an explicit user decline is a
+ *  session-level interruption (vendor battery policy killing the app switch,
+ *  timeouts, dropped associations). */
+export function classifyConnectFailure(
+  e: unknown
+): 'no-wallet' | 'cancelled' | 'interrupted' {
   const code = (e as { code?: unknown } | null)?.code;
   if (code === 'ERROR_WALLET_NOT_FOUND') return 'no-wallet';
-  if (
-    code === 'ERROR_ASSOCIATION_CANCELLED' ||
-    code === 'ERROR_SESSION_CLOSED' ||
-    code === -1 // ERROR_AUTHORIZATION_FAILED: user declined
-  ) {
-    return 'cancelled';
-  }
-  return null;
+  if (code === -1) return 'cancelled'; // ERROR_AUTHORIZATION_FAILED: declined
+  return 'interrupted';
 }
 
 export async function connect(): Promise<ConnectResult> {
@@ -52,9 +52,7 @@ export async function connect(): Promise<ConnectResult> {
       },
     };
   } catch (e) {
-    const kind = classify(e);
-    if (kind !== null) return { status: kind };
-    throw e;
+    return { status: classifyConnectFailure(e) };
   }
 }
 
@@ -70,7 +68,7 @@ export class WalletSignError extends Error {
   }
 }
 
-function classifySignFailure(e: unknown): SignFailure | null {
+export function classifySignFailure(e: unknown): SignFailure | null {
   const code = (e as { code?: unknown } | null)?.code;
   const message = e instanceof Error ? e.message : '';
   if (

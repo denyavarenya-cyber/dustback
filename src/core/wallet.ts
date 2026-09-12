@@ -8,7 +8,7 @@ import {
 const APP_IDENTITY = {
   name: 'DustBack',
   uri: 'https://dustback.app',
-  icon: 'favicon.png',
+  icon: 'icon.png', // resolves to https://dustback.app/icon.png (favicon.png 404s)
 };
 const CHAIN = 'solana:mainnet-beta';
 

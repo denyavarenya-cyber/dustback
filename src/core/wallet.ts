@@ -132,16 +132,19 @@ export async function signAndSendTransactions(
   });
   try {
     return await transact(async (wallet) => {
-      // an empty token means the last session was interrupted: authorize
-      // fresh instead of reauthorizing into a dead session
+      // MWA 2.0: authorize with auth_token replaces the deprecated
+      // reauthorize and silently reauthorizes while the token is valid.
+      // An empty token (interrupted session) authorizes fresh directly;
+      // a rejected token is discarded per spec and retried fresh.
       const auth = session.authToken
         ? await wallet
-            .reauthorize({
-              auth_token: session.authToken,
+            .authorize({
               identity: APP_IDENTITY,
+              chain: CHAIN,
+              auth_token: session.authToken,
             })
             .catch((e) => {
-              mwaLog('sign.reauthorize.rejected', {
+              mwaLog('sign.tokenAuthorize.rejected', {
                 error: serializeError(e),
               });
               return wallet.authorize({ identity: APP_IDENTITY, chain: CHAIN });

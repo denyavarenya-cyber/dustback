@@ -23,9 +23,9 @@ const AUTH_RESULT = {
 
 function fakeWallet() {
   return {
-    reauthorize: jest.fn(async () => AUTH_RESULT),
-    authorize: jest.fn(async () => AUTH_RESULT),
-    signAndSendTransactions: jest.fn(async () => ['sig1']),
+    reauthorize: jest.fn(async (_params?: unknown) => AUTH_RESULT),
+    authorize: jest.fn(async (_params?: unknown) => AUTH_RESULT),
+    signAndSendTransactions: jest.fn(async (_params?: unknown) => ['sig1']),
   };
 }
 
@@ -94,7 +94,7 @@ describe('classifySignFailure', () => {
 });
 
 describe('signAndSendTransactions session reuse', () => {
-  it('authorizes fresh when the stored token was cleared', async () => {
+  it('authorizes fresh without a token when the stored token was cleared', async () => {
     const wallet = fakeWallet();
     mockTransact.mockImplementation(async (cb) => cb(wallet as never));
 
@@ -104,19 +104,39 @@ describe('signAndSendTransactions session reuse', () => {
     );
 
     expect(wallet.authorize).toHaveBeenCalledTimes(1);
+    expect(wallet.authorize.mock.calls[0][0]).not.toHaveProperty('auth_token');
     expect(wallet.reauthorize).not.toHaveBeenCalled();
     expect(result.session.authToken).toBe('fresh-token');
   });
 
-  it('reauthorizes with a stored token when one is present', async () => {
+  it('reauthorizes via mwa 2.0 authorize with the stored token', async () => {
     const wallet = fakeWallet();
     mockTransact.mockImplementation(async (cb) => cb(wallet as never));
 
     await signAndSendTransactions({ address: 'addr', authToken: 'tok' }, []);
 
-    expect(wallet.reauthorize).toHaveBeenCalledWith(
+    expect(wallet.authorize).toHaveBeenCalledTimes(1);
+    expect(wallet.authorize).toHaveBeenCalledWith(
       expect.objectContaining({ auth_token: 'tok' })
     );
-    expect(wallet.authorize).not.toHaveBeenCalled();
+    expect(wallet.reauthorize).not.toHaveBeenCalled();
+  });
+
+  it('discards a rejected token and authorizes fresh instead of reporting a decline', async () => {
+    const wallet = fakeWallet();
+    // expired token: wallet rejects with ERROR_AUTHORIZATION_FAILED (-1)
+    wallet.authorize
+      .mockRejectedValueOnce(withCode(-1))
+      .mockResolvedValueOnce(AUTH_RESULT);
+    mockTransact.mockImplementation(async (cb) => cb(wallet as never));
+
+    const result = await signAndSendTransactions(
+      { address: 'addr', authToken: 'stale' },
+      []
+    );
+
+    expect(wallet.authorize).toHaveBeenCalledTimes(2);
+    expect(wallet.authorize.mock.calls[1][0]).not.toHaveProperty('auth_token');
+    expect(result.session.authToken).toBe('fresh-token');
   });
 });

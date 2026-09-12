@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.dustback",
+      "sha256_cert_fingerprints": [
+        "84:CD:4C:2E:FE:89:BC:E2:44:0A:5E:15:00:EB:A4:31:5E:A9:EF:A7:F2:60:A8:4C:2C:87:C6:D0:81:F4:D8:45",
+        "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
+      ]
+    }
+  }
+]

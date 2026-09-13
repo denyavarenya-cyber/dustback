@@ -13,7 +13,9 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.pem
 android/keystore.properties
+/keystore.properties
 *.p8
 *.p12
 *.key

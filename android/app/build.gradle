@@ -97,7 +97,8 @@ android {
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
-    def keystorePropertiesFile = rootProject.file('keystore.properties')
+    // lives at the repo root, outside android/, so prebuild --clean cannot delete it
+    def keystorePropertiesFile = rootProject.file('../keystore.properties')
     def keystoreProperties = new Properties()
     if (keystorePropertiesFile.exists()) {
         keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }

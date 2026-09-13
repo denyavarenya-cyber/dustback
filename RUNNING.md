@@ -5,9 +5,10 @@
 Keystores live **outside the repo** in `%USERPROFILE%\dustback-keys\` and
 are referenced by absolute path from `keystore.properties` at the repo root
 (gitignored). Never put them under `android/` — `npx expo prebuild --clean`
-deletes that whole directory, gitignored files included; the original upload
-key was lost exactly that way on 2026-09-13. **Back up the whole
-`dustback-keys` folder plus `keystore.properties` off-machine now.**
+deletes that whole directory, gitignored files included; the upload key was
+wiped exactly that way on 2026-09-13 and only survived because a copy
+existed in `C:\sweeper-backup`. **Keep the whole `dustback-keys` folder plus
+`keystore.properties` backed up off-machine.**
 
 - `upload-keystore.jks` (`storeFile`/`storePassword`/`keyAlias`/`keyPassword`)
   — the Google Play upload key. Build with `cd android && .\gradlew

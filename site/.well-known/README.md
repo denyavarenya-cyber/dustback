@@ -6,10 +6,8 @@ it Phantom shows the app as unverified on connect.
 
 Fingerprints currently listed:
 
-1. `B2:13:…:33:37` — Play upload key, generated 2026-09-13 (also signs
-   local `assembleRelease`). The previous upload key (`84:CD:…:D8:45`) was
-   lost on 2026-09-13; its fingerprint was removed and a Play upload-key
-   reset is pending.
+1. `84:CD:…:D8:45` — Play upload key (also signs local `assembleRelease`).
+   Now kept outside the repo; see RUNNING.md.
 2. `FA:C6:…:3B:9C` — shared Android debug keystore (dev-client builds)
 3. `70:58:…:BD:92` — dApp Store signing key (`assembleReleaseDappstore`),
    separate from the Play upload key by design

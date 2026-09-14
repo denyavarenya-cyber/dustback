@@ -100,6 +100,86 @@ ul.principles li {
   cursor: default;
 }
 
+button.btn {
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+button.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 16px;
+  margin: 0 0 28px;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+form label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 16px 0 6px;
+}
+
+.req {
+  color: var(--accent);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+form input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+form input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+form .btn {
+  margin-top: 20px;
+}
+
+/* honeypot: off-screen, never display:none */
+.hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.error {
+  color: #b4453a;
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+
+.thanks {
+  background: #dff0f1;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 0;
+}
+
 a {
   color: var(--accent);
 }

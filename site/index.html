@@ -34,9 +34,36 @@
     </ul>
 
     <div class="buttons">
+      <button class="btn" type="button" id="tester-toggle" aria-expanded="false" aria-controls="tester-form">Become a tester</button>
       <a class="btn soon" href="#" aria-disabled="true">Google Play — coming soon</a>
       <a class="btn soon" href="#" aria-disabled="true">Solana dApp Store — coming soon</a>
     </div>
+
+    <section id="tester-form" class="card" hidden>
+      <h2>Android closed testing</h2>
+      <p class="muted">
+        Leave the Google account email you use on Google Play and we will add
+        it to the closed testing track. You get an opt-in link by email.
+      </p>
+      <form id="tester" method="post" action="https://script.google.com/macros/s/REPLACE_WITH_APPS_SCRIPT_DEPLOYMENT_ID/exec" novalidate>
+        <label for="email">Google account email <span class="req">required</span></label>
+        <input id="email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="you@gmail.com">
+
+        <label for="handle">Discord or X handle <span class="muted">optional</span></label>
+        <input id="handle" name="handle" type="text" autocomplete="off" placeholder="@handle">
+
+        <div class="hp" aria-hidden="true">
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <p class="error" id="tester-error" hidden>Please enter a valid email address.</p>
+        <button class="btn" type="submit" id="tester-submit">Send</button>
+      </form>
+      <p class="thanks" id="tester-thanks" hidden>
+        Thanks — you are on the list. Watch your inbox for the Play opt-in link.
+      </p>
+    </section>
 
     <p class="muted">
       Source code: <a href="https://github.com/denyavarenya-cyber/dustback">github.com/denyavarenya-cyber/dustback</a>
@@ -52,5 +79,54 @@
     </svg>
   </a>
 </footer>
+<script>
+  (function () {
+    var toggle = document.getElementById('tester-toggle');
+    var section = document.getElementById('tester-form');
+    var form = document.getElementById('tester');
+    var email = document.getElementById('email');
+    var error = document.getElementById('tester-error');
+    var thanks = document.getElementById('tester-thanks');
+    var submit = document.getElementById('tester-submit');
+
+    toggle.addEventListener('click', function () {
+      var open = section.hidden;
+      section.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      if (open) email.focus();
+    });
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      error.hidden = true;
+      if (!email.checkValidity()) {
+        error.hidden = false;
+        email.focus();
+        return;
+      }
+      if (form.website.value) {
+        // honeypot filled: pretend success, send nothing
+        form.hidden = true;
+        thanks.hidden = false;
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = 'Sending…';
+      // opaque cross-origin POST to the Apps Script web app; the response
+      // cannot be read, a network failure is the only detectable error
+      fetch(form.action, { method: 'POST', mode: 'no-cors', body: new FormData(form) })
+        .then(function () {
+          form.hidden = true;
+          thanks.hidden = false;
+        })
+        .catch(function () {
+          submit.disabled = false;
+          submit.textContent = 'Send';
+          error.textContent = 'Could not send. Check your connection and try again.';
+          error.hidden = false;
+        });
+    });
+  })();
+</script>
 </body>
 </html>

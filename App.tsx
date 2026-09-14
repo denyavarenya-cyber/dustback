@@ -6,6 +6,7 @@ import {
   SafeAreaView,
 } from 'react-native-safe-area-context';
 import { shortenAddress } from './src/format';
+import ConnectTroubleshooting from './src/screens/ConnectTroubleshooting';
 import DoneScreen from './src/screens/DoneScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
@@ -20,6 +21,10 @@ function ScanScreen() {
   const error = useSweeperStore((s) => s.error);
   const wallet = useSweeperStore((s) => s.wallet);
   const connectError = useSweeperStore((s) => s.connectError);
+  const connectInterrupted = useSweeperStore((s) => s.connectInterrupted);
+  const dismissTroubleshooting = useSweeperStore(
+    (s) => s.dismissTroubleshooting
+  );
   const setAddress = useSweeperStore((s) => s.setAddress);
   const scan = useSweeperStore((s) => s.scan);
   const connectWallet = useSweeperStore((s) => s.connectWallet);
@@ -87,6 +92,13 @@ function ScanScreen() {
           onPress={connectWallet}
           disabled={loading}
           style={{ marginTop: 12 }}
+        />
+      )}
+
+      {connectInterrupted && (
+        <ConnectTroubleshooting
+          onRetry={connectWallet}
+          onDismiss={dismissTroubleshooting}
         />
       )}
 

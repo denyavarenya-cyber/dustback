@@ -18,6 +18,7 @@ import {
 import { useSweeperStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card } from '../ui';
+import ConnectTroubleshooting from './ConnectTroubleshooting';
 
 const SIGNATURE_FEE_LAMPORTS = 5000;
 
@@ -28,6 +29,10 @@ export default function ReviewScreen() {
   const executing = useSweeperStore((s) => s.executing);
   const confirming = useSweeperStore((s) => s.confirming);
   const sweepError = useSweeperStore((s) => s.sweepError);
+  const sweepInterrupted = useSweeperStore((s) => s.sweepInterrupted);
+  const dismissTroubleshooting = useSweeperStore(
+    (s) => s.dismissTroubleshooting
+  );
   const cancelReview = useSweeperStore((s) => s.cancelReview);
   const confirmSweep = useSweeperStore((s) => s.confirmSweep);
   const symbols = useSweeperStore((s) => s.results?.symbols);
@@ -190,10 +195,14 @@ export default function ReviewScreen() {
           </Text>
         </View>
       )}
-      {sweepError && (
-        <Card tint="danger" style={{ marginTop: 16 }}>
-          <Text style={{ color: t.danger }}>{sweepError}</Text>
-        </Card>
+      {sweepInterrupted ? (
+        <ConnectTroubleshooting onDismiss={dismissTroubleshooting} />
+      ) : (
+        sweepError && (
+          <Card tint="danger" style={{ marginTop: 16 }}>
+            <Text style={{ color: t.danger }}>{sweepError}</Text>
+          </Card>
+        )
       )}
 
       <Btn

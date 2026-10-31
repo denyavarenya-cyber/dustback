@@ -83,9 +83,9 @@ export const DEFAULT_CONFIG: CleanupConfig = {
     web: { cleanup: true, swap: true },
   },
   feeWallet: FEE_WALLET_PLACEHOLDER,
-  // Owner decisions of 31 October: cleanup 3 percent; swap 0.5 percent once
+  // Owner decisions of 31 October: cleanup 7 percent (final); swap 0.5 percent once
   // Jupiter confirms in writing that it takes no share on /build.
-  cleanupFeeBps: 300,
+  cleanupFeeBps: 700,
   swapFeeBps: 50,
   swapFeeTokenAccount: FEE_WALLET_PLACEHOLDER,
   dustThresholdUsd: 5,

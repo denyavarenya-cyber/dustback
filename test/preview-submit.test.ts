@@ -32,14 +32,14 @@ describe('previewCleanup shows the same numbers the signed transactions will car
     expect(preview.feeWalletSet).toBe(true);
   });
 
-  it('works while the fee wallet is the placeholder, with the configured 3 percent and no recipient', async () => {
+  it('works while the fee wallet is the placeholder, with the configured 7 percent and no recipient', async () => {
     const scan = await scanFixture('wallet-many-empty.json');
     const close = scan.accounts.filter((a) => a.closable).map((a) => a.address).slice(0, 3);
     const preview = previewCleanup({ scan, selection: { close }, config: createConfig(), platform: 'android', now: NOW });
     expect(preview.feeWalletSet).toBe(false);
     expect(preview.feeRecipient).toBeNull();
-    expect(preview.feeBps).toBe(300);
-    expect(preview.totals.feeLamports).toBe((3n * 2039280n * 300n) / 10000n);
+    expect(preview.feeBps).toBe(700);
+    expect(preview.totals.feeLamports).toBe((3n * 2039280n * 700n) / 10000n);
     // but nothing signable can be built
     expect(await codeOf(() => planCleanup({ scan, selection: { close }, config: createConfig(), platform: 'android', lifetime, now: NOW }))).toBe(
       'FEE_WALLET_NOT_SET',

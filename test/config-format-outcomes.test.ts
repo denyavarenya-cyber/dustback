@@ -27,10 +27,10 @@ function code(fn: () => unknown): string | undefined {
 }
 
 describe('config', () => {
-  it('defaults to devnet, mainnet blocked, 3 percent cleanup, swaps simulation only', () => {
+  it('defaults to devnet, mainnet blocked, 7 percent cleanup, swaps simulation only', () => {
     expect(DEFAULT_CONFIG.cluster).toBe('devnet');
     expect(DEFAULT_CONFIG.allowMainnet).toBe(false);
-    expect(DEFAULT_CONFIG.cleanupFeeBps).toBe(300);
+    expect(DEFAULT_CONFIG.cleanupFeeBps).toBe(700);
     expect(DEFAULT_CONFIG.swapFeeBps).toBe(50);
     expect(DEFAULT_CONFIG.swap.simulationOnly).toBe(true);
     expect(DEFAULT_CONFIG.burn.enabled).toBe(false);

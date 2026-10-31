@@ -105,9 +105,9 @@ describe('transactions and the fee instruction', () => {
     expect(last?.program).toBe(SYSTEM_PROGRAM);
     expect(last?.accounts).toEqual([ADDR.owner, ADDR.feeWallet]);
     const rent = 5n * 2039280n;
-    const fee = (rent * 300n) / 10000n;
+    const fee = (rent * 700n) / 10000n;
     expect(u64At(last?.data ?? [], 4)).toBe(fee);
-    expect(tx?.fee).toEqual({ lamports: fee, bps: 300, recipient: ADDR.feeWallet });
+    expect(tx?.fee).toEqual({ lamports: fee, bps: 700, recipient: ADDR.feeWallet });
     expect(tx?.rentLamports).toBe(rent);
     expect(tx?.netLamports).toBe(rent - fee - 5000n);
   });
@@ -144,7 +144,7 @@ describe('transactions and the fee instruction', () => {
     const [tx] = plan(scan, [ADDR.wsolAccount]);
     expect(tx?.accounts[0]?.action).toBe('unwrap');
     expect(tx?.returnLamports).toBe(52039280n);
-    expect(tx?.fee?.lamports).toBe((2039280n * 300n) / 10000n);
+    expect(tx?.fee?.lamports).toBe((2039280n * 700n) / 10000n);
   });
 
   it('a batch over the size limit is split; every transaction fits and every account appears once', async () => {
@@ -157,7 +157,7 @@ describe('transactions and the fee instruction', () => {
     for (const t of txs) {
       expect(t.bytes).toBeLessThanOrEqual(1232);
       expect(decodeTx(t.base64).bytes).toBe(t.bytes);
-      expect(t.fee?.lamports).toBe((t.rentLamports * 300n) / 10000n);
+      expect(t.fee?.lamports).toBe((t.rentLamports * 700n) / 10000n);
     }
     const totalRent = txs.reduce((s, t) => s + t.rentLamports, 0n);
     expect(totalRent).toBe(scan.totals.reclaimableRentLamports);
@@ -294,7 +294,7 @@ describe('prepareCleanup simulates the exact bytes before offering', () => {
     // the offered bytes are exactly the bytes simulated last
     expect(sims[1]?.params[0]).toBe(offer.transactions[0]?.base64);
     expect(sims[1]?.params[1]).toMatchObject({ sigVerify: false, replaceRecentBlockhash: false });
-    expect(offer.totals.feeLamports).toBe((4n * 2039280n * 300n) / 10000n);
+    expect(offer.totals.feeLamports).toBe((4n * 2039280n * 700n) / 10000n);
   });
 
   it('never offers a transaction that fails simulation', async () => {

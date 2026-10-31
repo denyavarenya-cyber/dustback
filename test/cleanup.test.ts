@@ -349,3 +349,29 @@ describe('prepareCleanup simulates the exact bytes before offering', () => {
     );
   });
 });
+
+describe('size counting', () => {
+  it('the linear byte count equals the compiled size for every batch shape', async () => {
+    const { legacySize, measureLegacy } = await import('../src/tx');
+    const { closeAccountInstruction, harvestWithheldInstruction, setComputeUnitLimitInstruction, transferSolInstruction } = await import('../src/instructions');
+    const scan = await scanFixture('wallet-many-empty.json');
+    const t22 = await scanFixture('wallet-token2022.json');
+    const accounts = [...scan.accounts, ...t22.accounts.filter((a) => a.closable)];
+    for (let n = 1; n <= accounts.length; n += 7) {
+      const ixs = [setComputeUnitLimitInstruction(200_000)];
+      for (const a of accounts.slice(0, n)) {
+        if (a.needsHarvest) ixs.push(harvestWithheldInstruction(TOKEN_2022_PROGRAM, a.mint, [a.address]));
+        ixs.push(closeAccountInstruction(a.program === 'token' ? TOKEN_PROGRAM : TOKEN_2022_PROGRAM, a.address, ADDR.owner, ADDR.owner));
+      }
+      ixs.push(transferSolInstruction(ADDR.owner, ADDR.feeWallet, 12345n));
+      const counted = legacySize(ADDR.owner, ixs);
+      let compiled: number;
+      try {
+        compiled = measureLegacy(ADDR.owner, lifetime, ixs).bytes;
+      } catch {
+        compiled = Number.POSITIVE_INFINITY; // kit refuses more than 64 account keys
+      }
+      expect(counted).toBe(compiled);
+    }
+  });
+});

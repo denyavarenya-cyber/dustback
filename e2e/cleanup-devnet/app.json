@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "Cleanup e2e",
+    "slug": "cleanup-e2e",
+    "version": "0.0.0",
+    "userInterfaceStyle": "dark",
+    "platforms": ["android"]
+  }
+}

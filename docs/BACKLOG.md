@@ -11,11 +11,13 @@ One line per idea outside the current task. Not discussed or done until the owne
 - Solana v1 transactions (4096 bytes) once the main wallets sign them; fewer signatures for big cleanups.
 - Read the fee account delta from the confirmed transaction too, and show actual against simulated on the result screen.
 - Ask Jupiter for a written statement on any share of the `/build` integrator fee.
-- Font family tokens (IBM Plex Sans, IBM Plex Mono) in the app theme; cleanup screens already read `typography.family.mono` when it exists.
-- Switch the cleanup screens to the shared button once it is flat (no gradient, no glow).
 - Cleanup screen text into the app's i18n files (English strings live in `src/features/cleanup/strings.ts` for now).
 - `https://noventia.app/.well-known/assetlinks.json` with the Play app signing key, so Android wallets verify the Noventia app (owner: later).
-- Swap preview screen on top of the mainnet simulation (no signing), once Jupiter confirms the fee terms.
+- Swap confirm screen on a real quote: buying a token (SOL to token) in cleanup-core, simulation only, with the allowlist extended for wrapping SOL (a transfer only to the owner's own wrapped SOL account); the screen and the token check already run in mock mode.
 - Use agent 1's wallet connection in cleanup once it lands, instead of the minimal one in `src/features/cleanup/wallet`.
 - Run the cleanup flow on a real Android device and in Phantom on devnet before any mainnet step.
 - The Noventia mark for the dustback.app page once the owner provides an SVG or a transparent PNG; the text mark stays until then.
+- Level 4 warnings (confirmed fraud) on the swap confirm screen: the owner may want the swap stopped there instead of one extra tap.
+- The select screen shows each account's mint and the confirm screen its address; label both, or show both on both screens.
+- Raw `fontWeight` in the app's screens (about 90 places) and the `v5.type` ramp still draw the system font; moving them to `typography.family` is the theme owner's sweep.
+- Devnet SOL for tests: a small funded devnet wallet kept by the owner, or a paid RPC plan with a devnet faucet, so end to end runs do not wait on the web faucet.

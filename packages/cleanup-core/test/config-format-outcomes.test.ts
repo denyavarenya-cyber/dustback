@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertCanBuild,
+  assertCanSend,
   cleanupFeeActive,
   createConfig,
   DEFAULT_CONFIG,
+  FEE_WALLET_PLACEHOLDER,
   isFeatureEnabled,
   swapFeeActive,
 } from '../src/config';
@@ -25,11 +27,24 @@ function code(fn: () => unknown): string | undefined {
 }
 
 describe('config', () => {
-  it('defaults to devnet, mainnet blocked, no fee wallet', () => {
+  it('defaults to devnet, mainnet blocked, 3 percent cleanup, swaps simulation only', () => {
     expect(DEFAULT_CONFIG.cluster).toBe('devnet');
     expect(DEFAULT_CONFIG.allowMainnet).toBe(false);
+    expect(DEFAULT_CONFIG.cleanupFeeBps).toBe(300);
+    expect(DEFAULT_CONFIG.swapFeeBps).toBe(50);
+    expect(DEFAULT_CONFIG.swap.simulationOnly).toBe(true);
+    expect(DEFAULT_CONFIG.burn.enabled).toBe(false);
     expect(cleanupFeeActive(DEFAULT_CONFIG)).toBe(false);
     expect(swapFeeActive(DEFAULT_CONFIG)).toBe(false);
+  });
+
+  it('the fee wallet placeholder fails closed for cleanup and swaps', () => {
+    const config = createConfig();
+    expect(config.feeWallet).toBe(FEE_WALLET_PLACEHOLDER);
+    expect(code(() => assertCanBuild(config, 'web', 'cleanup'))).toBe('FEE_WALLET_NOT_SET');
+    expect(code(() => assertCanBuild(config, 'android', 'swap'))).toBe('FEE_WALLET_NOT_SET');
+    const real = createConfig({ feeWallet: ADDR.feeWallet, swapFeeTokenAccount: ADDR.feeAccount });
+    expect(code(() => assertCanBuild(real, 'web', 'cleanup'))).toBeUndefined();
   });
 
   it('iOS can never be switched on', () => {
@@ -40,9 +55,16 @@ describe('config', () => {
     expect(isFeatureEnabled(forced as never, 'ios', 'swap')).toBe(false);
   });
 
-  it('mainnet needs allowMainnet', () => {
-    expect(code(() => assertCanBuild(createConfig({ cluster: 'mainnet-beta' }), 'web', 'cleanup'))).toBe('MAINNET_BLOCKED');
-    expect(code(() => assertCanBuild(createConfig({ cluster: 'mainnet-beta', allowMainnet: true }), 'web', 'cleanup'))).toBeUndefined();
+  it('mainnet needs allowMainnet, except swaps in simulation-only mode, which never send', () => {
+    const fees = { feeWallet: ADDR.feeWallet, swapFeeTokenAccount: ADDR.feeAccount };
+    const mainnet = createConfig({ ...fees, cluster: 'mainnet-beta' });
+    expect(code(() => assertCanBuild(mainnet, 'web', 'cleanup'))).toBe('MAINNET_BLOCKED');
+    expect(code(() => assertCanBuild(mainnet, 'web', 'swap'))).toBeUndefined();
+    expect(code(() => assertCanSend(mainnet))).toBe('MAINNET_BLOCKED');
+    const noSim = createConfig({ ...fees, cluster: 'mainnet-beta', swap: { simulationOnly: false } });
+    expect(code(() => assertCanBuild(noSim, 'web', 'swap'))).toBe('MAINNET_BLOCKED');
+    const allowed = createConfig({ ...fees, cluster: 'mainnet-beta', allowMainnet: true });
+    expect(code(() => assertCanBuild(allowed, 'web', 'cleanup'))).toBeUndefined();
   });
 
   it('refuses fees above the hard caps and broken values', () => {

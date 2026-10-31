@@ -50,7 +50,9 @@ export interface SwapFee {
 }
 
 export interface SwapOffer {
-  base64: string;
+  /** Signable bytes; null in simulation-only mode, so no wallet can be asked to sign. */
+  base64: string | null;
+  simulationOnly: boolean;
   bytes: number;
   inputAccount: string;
   inputMint: string;
@@ -481,7 +483,8 @@ export async function prepareSwap(args: {
 
   const priority = (BigInt(cuLimit) * cuPrice + 999_999n) / 1_000_000n;
   return {
-    base64: final.base64,
+    base64: config.swap.simulationOnly ? null : final.base64,
+    simulationOnly: config.swap.simulationOnly,
     bytes: final.bytes,
     inputAccount: account.address,
     inputMint: account.mint,

@@ -17,7 +17,11 @@ export interface CleanupConfig {
    */
   allowMainnet: boolean;
   features: Record<SwitchablePlatform, Record<Feature, boolean>>;
-  /** Public address that receives fees. null: no fee instruction at all. */
+  /**
+   * Public address that receives fees. FEE_WALLET_PLACEHOLDER (the default)
+   * fails closed: nothing can be built until a real address is set. null means
+   * the owner chose no fee at all.
+   */
   feeWallet: string | null;
   /** Fee on reclaimed rent, in basis points (1000 = 10 percent). */
   cleanupFeeBps: number;
@@ -42,6 +46,11 @@ export interface CleanupConfig {
   /** Compute unit limit = units used in simulation times this margin. */
   computeUnitMargin: number;
   swap: {
+    /**
+     * Build and simulate swaps on mainnet without ever producing signable
+     * bytes. Owner decision of 31 October: the wallet never opens for swaps.
+     */
+    simulationOnly: boolean;
     slippageBps: number;
     /** Ratio, 0.05 = 5 percent. Swaps with a higher price impact are refused. */
     maxPriceImpact: number;
@@ -63,6 +72,9 @@ export interface CleanupConfig {
 export const MAX_CLEANUP_FEE_BPS = 2000;
 export const MAX_SWAP_FEE_BPS = 200;
 
+/** Stands in for the fee wallet until the owner gives its address. Fails closed. */
+export const FEE_WALLET_PLACEHOLDER = 'FEE_WALLET_NOT_SET';
+
 export const DEFAULT_CONFIG: CleanupConfig = {
   cluster: 'devnet',
   allowMainnet: false,
@@ -70,17 +82,19 @@ export const DEFAULT_CONFIG: CleanupConfig = {
     android: { cleanup: true, swap: true },
     web: { cleanup: true, swap: true },
   },
-  feeWallet: null,
-  // Draft values from the owner; see docs/FEES.md for the recommendation.
-  cleanupFeeBps: 1000,
+  feeWallet: FEE_WALLET_PLACEHOLDER,
+  // Owner decisions of 31 October: cleanup 3 percent; swap 0.5 percent once
+  // Jupiter confirms in writing that it takes no share on /build.
+  cleanupFeeBps: 300,
   swapFeeBps: 50,
-  swapFeeTokenAccount: null,
+  swapFeeTokenAccount: FEE_WALLET_PLACEHOLDER,
   dustThresholdUsd: 5,
   burn: { enabled: false, maxValueUsd: 0.1, allowUnpriced: false },
   maxTransactionBytes: 1232,
   maxScanAgeSeconds: 600,
   computeUnitMargin: 1.2,
   swap: {
+    simulationOnly: true,
     slippageBps: 100,
     maxPriceImpact: 0.05,
     maxAccounts: 40,
@@ -142,13 +156,13 @@ export function validateConfig(c: CleanupConfig): void {
   checkBps('cleanupFeeBps', c.cleanupFeeBps, MAX_CLEANUP_FEE_BPS);
   checkBps('swapFeeBps', c.swapFeeBps, MAX_SWAP_FEE_BPS);
   checkBps('swap.slippageBps', c.swap.slippageBps, 10_000);
-  if (c.feeWallet !== null && !isAddress(c.feeWallet)) fail('feeWallet is not a valid address');
-  if (c.swapFeeTokenAccount !== null && !isAddress(c.swapFeeTokenAccount)) {
-    fail('swapFeeTokenAccount is not a valid address');
-  }
-  if (c.feeWallet !== null && c.swapFeeBps > 0 && c.swapFeeTokenAccount === null) {
+  const addressOrUnset = (v: string | null) => v === null || v === FEE_WALLET_PLACEHOLDER || isAddress(v);
+  if (!addressOrUnset(c.feeWallet)) fail('feeWallet is not a valid address');
+  if (!addressOrUnset(c.swapFeeTokenAccount)) fail('swapFeeTokenAccount is not a valid address');
+  if (isRealAddress(c.feeWallet) && c.swapFeeBps > 0 && !isRealAddress(c.swapFeeTokenAccount)) {
     fail('swapFeeBps is set but swapFeeTokenAccount is missing');
   }
+  if (typeof c.swap.simulationOnly !== 'boolean') fail('swap.simulationOnly must be true or false');
   checkPositive('dustThresholdUsd', c.dustThresholdUsd);
   if (!Number.isFinite(c.burn.maxValueUsd) || c.burn.maxValueUsd < 0) fail('burn.maxValueUsd must be 0 or more');
   if (!Number.isInteger(c.maxTransactionBytes) || c.maxTransactionBytes < 200 || c.maxTransactionBytes > 1232) {
@@ -184,20 +198,38 @@ export function isFeatureEnabled(config: CleanupConfig, platform: Platform, feat
   return config.features[platform][feature];
 }
 
-/** The fee recipient, or null when no fee may be charged. Never the user. */
+function isRealAddress(v: string | null): v is string {
+  return v !== null && v !== FEE_WALLET_PLACEHOLDER && isAddress(v);
+}
+
+/** True when a fee instruction goes into cleanup transactions. Never to the user. */
 export function cleanupFeeActive(config: CleanupConfig): boolean {
-  return config.feeWallet !== null && config.cleanupFeeBps > 0;
+  return isRealAddress(config.feeWallet) && config.cleanupFeeBps > 0;
 }
 
 export function swapFeeActive(config: CleanupConfig): boolean {
-  return config.feeWallet !== null && config.swapFeeBps > 0 && config.swapFeeTokenAccount !== null;
+  return isRealAddress(config.feeWallet) && config.swapFeeBps > 0 && isRealAddress(config.swapFeeTokenAccount);
 }
 
-/** Guard for every function that builds a transaction a user could sign. */
+/**
+ * Guard for every function that builds a transaction. Swaps in simulation-only
+ * mode may run on mainnet, because they never produce signable bytes.
+ */
 export function assertCanBuild(config: CleanupConfig, platform: Platform, feature: Feature): void {
   if (!isFeatureEnabled(config, platform, feature)) {
     throw new CleanupError('FEATURE_DISABLED', `${feature} is switched off on ${platform}`);
   }
+  if (config.feeWallet === FEE_WALLET_PLACEHOLDER || config.swapFeeTokenAccount === FEE_WALLET_PLACEHOLDER) {
+    throw new CleanupError('FEE_WALLET_NOT_SET', 'the fee wallet is not set yet');
+  }
+  const simulationOnly = feature === 'swap' && config.swap.simulationOnly;
+  if (config.cluster === 'mainnet-beta' && !config.allowMainnet && !simulationOnly) {
+    throw new CleanupError('MAINNET_BLOCKED', 'mainnet transactions are not approved yet');
+  }
+}
+
+/** Guard for sending a transaction the user signed. Simulation-only never sends. */
+export function assertCanSend(config: CleanupConfig): void {
   if (config.cluster === 'mainnet-beta' && !config.allowMainnet) {
     throw new CleanupError('MAINNET_BLOCKED', 'mainnet transactions are not approved yet');
   }

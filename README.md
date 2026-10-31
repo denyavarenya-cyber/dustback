@@ -5,8 +5,9 @@ the Expo app on web and Android.
 
 It reads public token accounts, classifies them, and builds **unsigned**
 transactions that the user signs in their own wallet. It never asks for,
-holds or logs a key or a seed phrase, never signs, never sends, and never
-offers a transaction whose exact bytes failed simulation. Lint rules forbid
+holds or logs a key or a seed phrase, never signs, and never offers a
+transaction whose exact bytes failed simulation. It sends only a transaction
+the user signed, unchanged, and never on mainnet before the owner allows it. Lint rules forbid
 importing key or signer modules.
 
 ## Flow
@@ -15,8 +16,10 @@ importing key or signer modules.
 scanWallet          read only: token accounts of a public address, classified
   user selects      per account; nothing is selected by default
 prepareCleanup      unsigned close transactions, fee inside each, simulated
-prepareSwap         one swap to SOL via Jupiter, built right before signing
+previewCleanup      the scan screen numbers, same batching and fees, nothing signable
+prepareSwap         one swap to SOL via Jupiter; on mainnet simulation only, no bytes
   wallet signs      in the app, through the user's wallet
+submitSignedTransaction  sends the signed bytes if the message is unchanged
 waitForOutcomes     confirmed / failed / timeout per signature
 explorerTxUrl       link to each transaction
 ```
@@ -35,6 +38,8 @@ explorerTxUrl       link to each transaction
 | `prepareCleanup({ rpc, scan, selection, config, platform })` | Builds, simulates twice (measure, then the final bytes), returns `CleanupOffer` with only passing transactions plus `rejected` with plain reasons. |
 | `prepareSwap({ rpc, scan, request, config, platform })` | Jupiter `/swap/v2/build`, allowlist checks, lookup tables read from our RPC, compile, simulate, fee measured in the simulation. Returns `SwapOffer`. |
 | `assertBurnAllowed(account, amountRaw, config)` | The burn guard on its own. |
+| `previewCleanup({ scan, selection, config, platform })` | Pure numbers for a selection with the same batching and fee rounding as `prepareCleanup`; works while the fee wallet is the placeholder, produces nothing signable. |
+| `submitSignedTransaction({ rpc, config, offered, signed })` | Refuses if the wallet changed the message or did not sign it, refuses mainnet before approval, checks the cluster, sends with preflight, returns the signature. |
 | `waitForOutcomes({ rpc, signatures })` | Polls signature statuses. |
 | `explorerTxUrl(sig, cluster)` / `explorerAddressUrl` | Links; refuses anything that is not a signature or address. |
 | `formatSol`, `formatTokenAmount`, `shorten` | Exact text from integers, no floating point. |
@@ -42,7 +47,7 @@ explorerTxUrl       link to each transaction
 Errors are `CleanupError` with a `code`: `FEATURE_DISABLED`, `MAINNET_BLOCKED`,
 `CLUSTER_MISMATCH`, `INVALID_CONFIG`, `INVALID_ADDRESS`, `STALE_SCAN`,
 `NOT_IN_SCAN`, `NOT_CLOSABLE`, `PROTECTED`, `BURN_REFUSED`, `NOT_SWAPPABLE`,
-`RPC_ERROR`, `BAD_RESPONSE`, `UNSAFE_TRANSACTION`, `FEE_ACCOUNT_INVALID`,
+`FEE_WALLET_NOT_SET`, `RPC_ERROR`, `BAD_RESPONSE`, `UNSAFE_TRANSACTION`, `FEE_ACCOUNT_INVALID`,
 `TOO_LARGE`, `SIMULATION_FAILED`.
 
 ### Categories
@@ -78,10 +83,10 @@ Errors are `CleanupError` with a `code`: `FEATURE_DISABLED`, `MAINNET_BLOCKED`,
 | `cluster` | `devnet` | |
 | `allowMainnet` | `false` | Stays false until the owner approves mainnet in writing. |
 | `features.android` / `features.web` | cleanup on, swap on | iOS has no switch: always off. |
-| `feeWallet` | `null` | Public address only. `null` means no fee instruction at all. |
-| `cleanupFeeBps` | `1000` | Draft; hard cap 2000. |
+| `feeWallet` | `FEE_WALLET_PLACEHOLDER` | Public address only. The placeholder fails closed (`FEE_WALLET_NOT_SET`); `null` means the owner chose no fee. |
+| `cleanupFeeBps` | `300` | Owner decision of 31 October; hard cap 2000. |
 | `swapFeeBps` | `50` | Draft; hard cap 200. |
-| `swapFeeTokenAccount` | `null` | Wrapped SOL account of `feeWallet`; required when both are set. Checked on chain before each swap. |
+| `swapFeeTokenAccount` | `FEE_WALLET_PLACEHOLDER` | Wrapped SOL account of `feeWallet`; required when both are set. Checked on chain before each swap. |
 | `dustThresholdUsd` | `5` | |
 | `burn.enabled` | `false` | |
 | `burn.maxValueUsd` | `0.1` | |
@@ -89,6 +94,7 @@ Errors are `CleanupError` with a `code`: `FEATURE_DISABLED`, `MAINNET_BLOCKED`,
 | `maxTransactionBytes` | `1232` | |
 | `maxScanAgeSeconds` | `600` | |
 | `computeUnitMargin` | `1.2` | |
+| `swap.simulationOnly` | `true` | Swaps may be built and simulated on mainnet but return no signable bytes. |
 | `swap.slippageBps` | `100` | |
 | `swap.maxPriceImpact` | `0.05` | |
 | `swap.maxAccounts` | `40` | |

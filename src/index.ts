@@ -3,17 +3,20 @@
  *
  * Reads public token accounts, classifies them, and builds unsigned
  * transactions that the user signs in their own wallet. It never holds keys,
- * never signs, never sends, and never offers a transaction that failed
- * simulation.
+ * never signs, and never offers a transaction that failed simulation. It sends
+ * only a transaction the user signed, unchanged, and never on mainnet before
+ * the owner allows it.
  */
 export {
   assertCanBuild,
+  assertCanSend,
   cleanupFeeActive,
   type Cluster,
   type CleanupConfig,
   type ConfigOverrides,
   createConfig,
   DEFAULT_CONFIG,
+  FEE_WALLET_PLACEHOLDER,
   type Feature,
   isFeatureEnabled,
   MAX_CLEANUP_FEE_BPS,
@@ -47,12 +50,15 @@ export {
   type CleanupAction,
   type CleanupFee,
   type CleanupOffer,
+  type CleanupPreview,
+  type CleanupPreviewTransaction,
   type CleanupSelection,
   type CleanupTotals,
   type CleanupTransaction,
   planCleanup,
   type PlannedAccount,
   prepareCleanup,
+  previewCleanup,
   type RejectedBatch,
 } from './cleanup';
 export {
@@ -64,6 +70,7 @@ export {
   type SwapRequest,
 } from './swap';
 export { explainSimulationError } from './simulation';
+export { submitSignedTransaction } from './submit';
 export { explorerAddressUrl, explorerTxUrl, isSignature, type Outcome, waitForOutcomes } from './outcomes';
 export { formatSol, formatTokenAmount, shorten } from './format';
 export { JUPITER_AGGREGATOR_PROGRAM, WSOL_MINT } from './constants';

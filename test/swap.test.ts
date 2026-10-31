@@ -3,6 +3,7 @@ import { createConfig } from '../src/config';
 import {
   ASSOCIATED_TOKEN_PROGRAM,
   COMPUTE_BUDGET_PROGRAM,
+  GENESIS_HASH,
   JUPITER_AGGREGATOR_PROGRAM,
   SYSTEM_PROGRAM,
   TOKEN_PROGRAM,
@@ -64,6 +65,7 @@ interface Setup {
   simFails?: boolean;
   table?: unknown;
   feeAccountValue?: unknown;
+  genesis?: string;
 }
 
 function world(s: Setup = {}) {
@@ -91,6 +93,7 @@ function world(s: Setup = {}) {
   };
   const rpc = fakeRpc({
     ...baseHandlers,
+    ...(s.genesis ? { getGenesisHash: () => s.genesis } : {}),
     getAccountInfo: () => ({ context: { slot: 1 }, value: s.feeAccountValue ?? feeAccount.value }),
     getMultipleAccounts: (p) => ({ context: { slot: 1 }, value: (p[0] as string[]).map(before) }),
     simulateTransaction: (p) => {
@@ -120,7 +123,9 @@ describe('prepareSwap on a recorded Jupiter response', () => {
   it('builds, checks and simulates a swap with the integrator fee from config', async () => {
     const scan = await scanFixture('wallet-mixed.json');
     const w = world();
-    const offer = await swap(scan, w);
+    // Signable bytes exist only outside simulation-only mode (devnet here).
+    const offer = await swap(scan, w, testConfig({ swap: { simulationOnly: false } }));
+    expect(offer.simulationOnly).toBe(false);
 
     const url = new URL(w.urls[0] as string);
     expect(url.origin + url.pathname).toBe('https://api.jup.ag/swap/v2/build');
@@ -141,7 +146,7 @@ describe('prepareSwap on a recorded Jupiter response', () => {
     expect(offer.computeUnitLimit).toBe(180_000);
     expect(offer.networkFeeLamports).toBe(5000n + 9000n);
 
-    const d = decodeTx(offer.base64, TABLES);
+    const d = decodeTx(offer.base64 as string, TABLES);
     expect(d.version).toBe(0);
     expect(d.feePayer).toBe(ADDR.owner);
     expect(d.signers).toBe(1);
@@ -158,7 +163,7 @@ describe('prepareSwap on a recorded Jupiter response', () => {
     const jup = d.instructions[3];
     expect(jup?.accounts).toEqual(build().swapInstruction.accounts.map((a) => a.pubkey));
     // the pools were loaded from the lookup table that was read from the chain
-    expect(decodeTx(offer.base64).instructions[3]?.accounts.filter((a) => a === '?').length).toBe(4);
+    expect(decodeTx(offer.base64 as string).instructions[3]?.accounts.filter((a) => a === '?').length).toBe(4);
 
     const sims = w.rpc.calls.filter((c) => c.method === 'simulateTransaction');
     expect(sims.at(-1)?.params[0]).toBe(offer.base64);
@@ -169,9 +174,31 @@ describe('prepareSwap on a recorded Jupiter response', () => {
     const jupiter = build();
     jupiter.swapInstruction.accounts = jupiter.swapInstruction.accounts.filter((a) => a.pubkey !== ADDR.feeAccount);
     const w = world({ jupiter });
-    const offer = await swap(scan, w, createConfig({ feeWallet: null }));
+    const offer = await swap(scan, w, createConfig({ feeWallet: null, swapFeeTokenAccount: null, swap: { simulationOnly: false } }));
     expect(new URL(w.urls[0] as string).searchParams.has('platformFeeBps')).toBe(false);
     expect(offer.fee).toBeNull();
+  });
+
+  it('on mainnet runs as simulation only: numbers yes, signable bytes never', async () => {
+    const scan = { ...(await scanFixture('wallet-mixed.json')), cluster: 'mainnet-beta' as const };
+    const w = world({ genesis: GENESIS_HASH['mainnet-beta'] });
+    const offer = await swap(scan, w, testConfig({ cluster: 'mainnet-beta' }));
+    expect(offer.simulationOnly).toBe(true);
+    expect(offer.base64).toBeNull();
+    expect(offer.fee?.lamports).toBe(MEASURED_FEE);
+    expect(w.rpc.calls.filter((c) => c.method === 'simulateTransaction')).toHaveLength(2);
+    // without simulation-only, mainnet stays blocked
+    await expectCode(
+      swap(scan, world({ genesis: GENESIS_HASH['mainnet-beta'] }), testConfig({ cluster: 'mainnet-beta', swap: { simulationOnly: false } })),
+      'MAINNET_BLOCKED',
+    );
+  });
+
+  it('fails closed while the fee wallet is the placeholder', async () => {
+    const scan = await scanFixture('wallet-mixed.json');
+    const w = world();
+    await expectCode(swap(scan, w, createConfig()), 'FEE_WALLET_NOT_SET');
+    expect(w.urls).toHaveLength(0);
   });
 
   it('is off on iOS and refuses NFTs, frozen, empty and wrapped SOL accounts', async () => {

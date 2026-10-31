@@ -1,6 +1,14 @@
-import { isAddress } from '@solana/kit';
+import { getAddressDecoder, isAddress } from '@solana/kit';
 import { type ClassifiedAccount, PROGRAM_ID } from './accounts';
-import { assertCanBuild, type CleanupConfig, cleanupFeeActive, type Cluster, type Platform } from './config';
+import {
+  assertCanBuild,
+  type CleanupConfig,
+  cleanupFeeActive,
+  type Cluster,
+  FEE_WALLET_PLACEHOLDER,
+  isFeatureEnabled,
+  type Platform,
+} from './config';
 import { LAMPORTS_PER_SIGNATURE, MAX_COMPUTE_UNIT_LIMIT, TOKEN_2022_PROGRAM } from './constants';
 import { CleanupError } from './errors';
 import { assertFresh } from './fresh';
@@ -302,6 +310,98 @@ export function planCleanup(args: {
     );
     return describe(i, batch, config, compiled, MAX_COMPUTE_UNIT_LIMIT, args.lifetime, null);
   });
+}
+
+export interface CleanupPreviewTransaction {
+  index: number;
+  accounts: PlannedAccount[];
+  rentLamports: bigint;
+  returnLamports: bigint;
+  feeLamports: bigint;
+  networkFeeLamports: bigint;
+  netLamports: bigint;
+}
+
+export interface CleanupPreview {
+  owner: string;
+  cluster: Cluster;
+  feeBps: number;
+  /** null while the fee wallet is not set, or when the owner chose no fee. */
+  feeRecipient: string | null;
+  /** False while the fee wallet is the placeholder: nothing can be signed yet. */
+  feeWalletSet: boolean;
+  transactions: CleanupPreviewTransaction[];
+  totals: CleanupTotals;
+}
+
+const PREVIEW_LIFETIME: LatestBlockhash = {
+  blockhash: getAddressDecoder().decode(new Uint8Array(32).fill(1)),
+  lastValidBlockHeight: 0n,
+};
+// Stands in for the fee wallet when measuring sizes: same byte count as any address.
+const PREVIEW_FEE_RECIPIENT = getAddressDecoder().decode(new Uint8Array(32).fill(7));
+
+/**
+ * The numbers the scan screen shows for a selection, computed with the same
+ * batching and fee rounding as prepareCleanup, without the network and
+ * without producing any signable bytes.
+ */
+export function previewCleanup(args: {
+  scan: ScanResult;
+  selection: CleanupSelection;
+  config: CleanupConfig;
+  platform: Platform;
+  now?: Date;
+}): CleanupPreview {
+  const { scan, config } = args;
+  if (!isFeatureEnabled(config, args.platform, 'cleanup')) {
+    throw new CleanupError('FEATURE_DISABLED', `cleanup is switched off on ${args.platform}`);
+  }
+  if (config.cluster === 'mainnet-beta' && !config.allowMainnet) {
+    throw new CleanupError('MAINNET_BLOCKED', 'mainnet transactions are not approved yet');
+  }
+  assertFresh(scan, config, args.now ?? new Date());
+  const feeWalletSet = config.feeWallet !== FEE_WALLET_PLACEHOLDER;
+  const measureConfig: CleanupConfig = feeWalletSet ? config : { ...config, feeWallet: PREVIEW_FEE_RECIPIENT };
+  const items = selectAccounts(scan, args.selection, measureConfig);
+  const transactions = batchSelection(scan.owner, items, measureConfig, PREVIEW_LIFETIME).map((batch, index) => {
+    const accounts: PlannedAccount[] = batch.items.map((i) => ({
+      address: i.account.address,
+      mint: i.account.mint,
+      action: i.action,
+      rentLamports: i.account.rentLamports,
+      returnLamports: i.account.returnLamports,
+      burnAmountRaw: i.burnAmount,
+    }));
+    const returnLamports = accounts.reduce((s, a) => s + a.returnLamports, 0n);
+    return {
+      index,
+      accounts,
+      rentLamports: batch.rentLamports,
+      returnLamports,
+      feeLamports: batch.feeLamports,
+      networkFeeLamports: LAMPORTS_PER_SIGNATURE,
+      netLamports: returnLamports - batch.feeLamports - LAMPORTS_PER_SIGNATURE,
+    };
+  });
+  const totals: CleanupTotals = {
+    accounts: transactions.reduce((s, t) => s + t.accounts.length, 0),
+    transactions: transactions.length,
+    rentLamports: transactions.reduce((s, t) => s + t.rentLamports, 0n),
+    returnLamports: transactions.reduce((s, t) => s + t.returnLamports, 0n),
+    feeLamports: transactions.reduce((s, t) => s + t.feeLamports, 0n),
+    networkFeeLamports: transactions.reduce((s, t) => s + t.networkFeeLamports, 0n),
+    netLamports: transactions.reduce((s, t) => s + t.netLamports, 0n),
+  };
+  return {
+    owner: scan.owner,
+    cluster: config.cluster,
+    feeBps: config.feeWallet === null ? 0 : config.cleanupFeeBps,
+    feeRecipient: feeWalletSet ? config.feeWallet : null,
+    feeWalletSet,
+    transactions,
+    totals,
+  };
 }
 
 function totalsOf(transactions: CleanupTransaction[]): CleanupTotals {

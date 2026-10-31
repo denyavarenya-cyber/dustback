@@ -1,5 +1,6 @@
 export type CleanupErrorCode =
   | 'FEATURE_DISABLED'
+  | 'FEE_WALLET_NOT_SET'
   | 'MAINNET_BLOCKED'
   | 'CLUSTER_MISMATCH'
   | 'INVALID_CONFIG'

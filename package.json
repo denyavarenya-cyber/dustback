@@ -11,7 +11,9 @@
     ".": "./src/index.ts"
   },
   "files": [
-    "src"
+    "src",
+    "LICENSE",
+    "README.md"
   ],
   "sideEffects": false,
   "engines": {

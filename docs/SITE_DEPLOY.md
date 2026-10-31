@@ -6,20 +6,21 @@ Worker `dustback` у Cloudflare.
 
 ## Що на сторінці
 
-* Одна сторінка: "DustBack is now part of Noventia. Wallet cleanup lives in the Noventia
-  app", посилання на noventia.app, офіційні адреси (noventia.app, noventia.xyz,
-  X @NoventiaHq, Discord, support@noventia.app).
+* Головний рядок "DustBack is now part of Noventia", одне речення про те, чим був DustBack,
+  "Wallet cleanup now lives in Noventia", одна кнопка на noventia.app, офіційні адреси
+  (noventia.app, noventia.xyz, X @NoventiaHq, Discord, support@noventia.app) і рядок
+  "Noventia never asks for your seed phrase or private key". Близько 55 слів.
+* Темний стиль Noventia, IBM Plex Sans з самого сайту (`site/fonts`, ліцензія OFL). Сітка:
+  на телефоні одна колонка, від 960 px заголовок на всю ширину, під ним текст і адреси.
+  Перевірено на 360, 390, 768 і 1440 px: горизонтальної прокрутки немає.
 * Без скриптів, без форми, без кнопки підключення гаманця, без сторонніх запитів.
-  Шрифти IBM Plex лежать на самому сайті (`site/fonts`, ліцензія OFL).
 * Заголовки (`site/_headers`): Content-Security-Policy `default-src 'none'`, HSTS,
   X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy.
 * Старі шляхи (`site/_redirects`): `/privacy`, `/privacy/`, `/privacy.html` ведуть на
-  https://noventia.app/privacy одним переходом. `/index.html` веде на `/` (стандартна
-  поведінка Cloudflare). Невідомі шляхи показують сторінку 404 з посиланням на noventia.app.
+  https://noventia.app/privacy одним переходом. Невідомі шляхи показують сторінку 404.
 * Залишено: `/icon.png` (ним підписується вже встановлений застосунок DustBack у
   гаманцях) і `/.well-known/assetlinks.json` з двома відбитками, без debug ключа.
 * Додано `/.well-known/security.txt` з контактом support@noventia.app.
-* Прибрано: стара сторінка, форма тестерів, `/.well-known/README.md`.
 
 ## Деплой
 

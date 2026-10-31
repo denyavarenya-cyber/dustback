@@ -45,7 +45,12 @@ for (const file of html) {
   if (/\sstyle=/i.test(src)) fail(file, 'inline style (the CSP allows none)');
   if (/\son[a-z]+=/i.test(src)) fail(file, 'inline event handler');
   if (/<(form|input|button|iframe)\b/i.test(src)) fail(file, 'form, input, button or iframe');
-  if (/connect (a |your )?wallet/i.test(text.replace(/never asks you to connect a wallet/i, ''))) fail(file, 'wallet connect wording');
+  if (/connect (a |your )?wallet/i.test(text)) fail(file, 'wallet connect wording');
+  const body = (src.match(/<body>([\s\S]*)<\/body>/i)?.[1] ?? '').replace(/<[^>]+>/g, ' ');
+  const words = body.split(/\s+/).filter(Boolean).length;
+  if (words > 70) fail(file, `${words} words on the page (about 60 at most)`);
+  if (!body.includes('Noventia never asks for your seed phrase or private key.')) fail(file, 'missing the seed phrase line');
+  if ((src.match(/class="button"/g) ?? []).length !== 1) fail(file, 'exactly one button expected');
   for (const m of src.matchAll(/<(?:link|img|source)\b[^>]*\b(?:href|src)="([^"]+)"/gi)) {
     if (/^(https?:)?\/\//i.test(m[1] ?? '')) fail(file, `loads a resource from another origin: ${m[1]}`);
   }
@@ -66,6 +71,13 @@ for (const file of files.filter((f) => extname(f) === '.css')) {
       fail(file, `missing file ${m[1]}`);
     }
   }
+}
+
+const index = readFileSync(join(SITE, 'index.html'), 'utf8');
+if (!/<h1>DustBack is now part of Noventia<\/h1>/.test(index)) failures.push('index.html: the headline must be "DustBack is now part of Noventia"');
+if (!index.includes('href="https://noventia.app">Open noventia.app</a>')) failures.push('index.html: the button must open noventia.app');
+for (const addr of ['https://noventia.app', 'https://noventia.xyz', 'https://x.com/NoventiaHq', 'https://discord.com/invite/5HaTQHW2Es', 'mailto:support@noventia.app']) {
+  if (!index.includes(`href="${addr}"`)) failures.push(`index.html: missing official address ${addr}`);
 }
 
 const headers = readFileSync(join(SITE, '_headers'), 'utf8');

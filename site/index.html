@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DustBack is now part of Noventia</title>
-  <meta name="description" content="DustBack is now part of Noventia. Wallet cleanup lives in the Noventia app.">
+  <meta name="description" content="DustBack is now part of Noventia. Wallet cleanup now lives in Noventia.">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0A1214">
   <link rel="icon" href="/icon.png">
@@ -12,31 +12,34 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <main>
-    <p class="wordmark">Noventia</p>
+  <div class="page">
+    <header class="top">
+      <span class="mark">Noventia</span>
+    </header>
 
-    <h1>DustBack is now part of Noventia.</h1>
-    <p class="lead">Wallet cleanup lives in the Noventia app.</p>
+    <main class="grid">
+      <h1>DustBack is now part of Noventia</h1>
 
-    <p>DustBack closed empty token accounts on Solana and returned their rent to the owner. That work continues in Noventia, a record of what wallets, projects and agents do on Solana, built from facts anyone can check.</p>
-    <p>The DustBack Android app is no longer distributed. DustBack never held funds: every transaction was signed in the owner's own wallet.</p>
+      <div class="intro">
+        <p class="lead">DustBack was an app that closed empty Solana token accounts and gave the rent back to their owners. Wallet cleanup now lives in Noventia.</p>
+        <a class="button" href="https://noventia.app">Open noventia.app</a>
+      </div>
 
-    <a class="primary" href="https://noventia.app">Open noventia.app</a>
+      <section class="addresses" aria-labelledby="official">
+        <h2 id="official">Official addresses</h2>
+        <dl>
+          <div><dt>App</dt><dd><a href="https://noventia.app">noventia.app</a></dd></div>
+          <div><dt>Protocol</dt><dd><a href="https://noventia.xyz">noventia.xyz</a></dd></div>
+          <div><dt>X</dt><dd><a href="https://x.com/NoventiaHq">@NoventiaHq</a></dd></div>
+          <div><dt>Discord</dt><dd><a href="https://discord.com/invite/5HaTQHW2Es">discord.com/invite/5HaTQHW2Es</a></dd></div>
+          <div><dt>Email</dt><dd><a href="mailto:support@noventia.app">support@noventia.app</a></dd></div>
+        </dl>
+      </section>
+    </main>
 
-    <section aria-labelledby="official">
-      <h2 id="official">Official Noventia addresses</h2>
-      <dl class="addresses">
-        <div><dt>App</dt><dd><a href="https://noventia.app">noventia.app</a></dd></div>
-        <div><dt>Protocol</dt><dd><a href="https://noventia.xyz">noventia.xyz</a></dd></div>
-        <div><dt>X</dt><dd><a href="https://x.com/NoventiaHq">@NoventiaHq</a></dd></div>
-        <div><dt>Discord</dt><dd><a href="https://discord.com/invite/5HaTQHW2Es">discord.com/invite/5HaTQHW2Es</a></dd></div>
-        <div><dt>Email</dt><dd><a href="mailto:support@noventia.app">support@noventia.app</a></dd></div>
-      </dl>
-      <p class="note">Only these addresses are ours. Noventia never asks for a seed phrase or a private key, and this site never asks you to connect a wallet.</p>
-    </section>
-
-    <p id="privacy" class="small">This page sets no cookies and loads nothing from other sites. Noventia privacy policy: <a href="https://noventia.app/privacy">noventia.app/privacy</a>.</p>
-  </main>
-  <footer>DustBack, part of Noventia</footer>
+    <footer class="foot">
+      <p>Noventia never asks for your seed phrase or private key.</p>
+    </footer>
+  </div>
 </body>
 </html>

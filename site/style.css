@@ -1,5 +1,5 @@
-/* Noventia brand tokens (POE_BRIEF section 6). Fonts are served from this
-   site; nothing loads from another origin. */
+/* Noventia dark style. Fonts are served from this site; nothing loads from
+   another origin. */
 @font-face {
   font-family: "IBM Plex Sans";
   font-style: normal;
@@ -28,129 +28,151 @@
   font-display: swap;
   src: url("/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
 }
-@font-face {
-  font-family: "IBM Plex Mono";
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url("/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
-}
 
 :root {
   --bg: #0A1214;
-  --surface: #141E1F;
-  --line: #1F2D2E;
   --text: #EEF5F2;
   --muted: #9DB3AD;
   --accent: #6CCCBF;
-  --primary: #19C093;
+  --line: #1F2D2E;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  /* One spacing scale for the whole page, growing with the viewport. */
+  --gutter: clamp(24px, 5vw, 72px);
+  --gap: clamp(48px, 8vw, 128px);
 }
 
-* { box-sizing: border-box; }
+*,
+*::before,
+*::after { box-sizing: border-box; }
 
 html { background: var(--bg); }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-size: 17px;
-  line-height: 1.6;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-main {
-  flex: 1;
-  width: 100%;
-  max-width: 640px;
+.page {
+  min-height: 100vh;
+  min-height: 100svh;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 72px 24px 48px;
+  padding: 0 var(--gutter);
+  display: flex;
+  flex-direction: column;
 }
 
-.wordmark {
-  margin: 0 0 56px;
+/* Header */
+.top {
+  padding: clamp(28px, 4vw, 48px) 0;
+}
+.mark {
   font-weight: 600;
   font-size: 18px;
-  color: var(--accent);
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+/* Main grid. Phones: one column. From 960 px: the headline spans the full
+   width, then the text and the addresses sit side by side, tops aligned. */
+.grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--gap);
+  row-gap: clamp(28px, 4vw, 56px);
+  align-content: center;
+  align-items: start;
+  padding: clamp(24px, 4vw, 56px) 0;
+}
+.grid > h1 { grid-column: 1 / -1; }
+.grid > .addresses { margin-top: clamp(20px, 4vw, 40px); }
+@media (min-width: 960px) {
+  .grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .grid > .addresses { margin-top: 0; }
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(34px, 6vw, 48px);
-  line-height: 1.12;
+  max-width: 16ch;
+  font-size: clamp(2.6rem, 1.4rem + 5.2vw, 5.75rem);
+  line-height: 1.02;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--text);
 }
 
 .lead {
-  margin: 16px 0 32px;
-  font-size: 21px;
+  margin: 0;
+  max-width: 36ch;
+  font-size: clamp(18px, 1rem + 0.35vw, 21px);
+  line-height: 1.55;
   color: var(--muted);
 }
 
-p { margin: 0 0 16px; }
-
-a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-a:hover { color: var(--text); }
-a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
-
-.primary {
+.button {
   display: inline-block;
-  margin: 16px 0 56px;
-  padding: 14px 24px;
+  margin-top: clamp(32px, 4vw, 48px);
+  padding: 15px 26px;
   border-radius: 10px;
-  background: var(--primary);
+  background: var(--accent);
   color: var(--bg);
   font-weight: 600;
+  font-size: 17px;
   text-decoration: none;
 }
-.primary:hover { color: var(--bg); background: var(--accent); }
+.button:hover { background: var(--text); }
+.button:focus-visible,
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
 
-section {
-  padding: 24px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-
-h2 {
-  margin: 0 0 16px;
-  font-size: 15px;
+/* Official addresses: a quiet table, hairlines only. */
+.addresses h2 {
+  margin: 0 0 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--muted);
 }
-
-.addresses { margin: 0; }
-.addresses div {
-  display: flex;
-  justify-content: space-between;
+.addresses dl { margin: 0; border-top: 1px solid var(--line); }
+.addresses dl > div {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
   gap: 16px;
-  padding: 10px 0;
-  border-top: 1px solid var(--line);
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
 }
-.addresses div:first-child { border-top: 0; }
-.addresses dt { color: var(--muted); }
-.addresses dd { margin: 0; font-family: var(--mono); font-size: 15px; text-align: right; overflow-wrap: anywhere; }
-
-@media (max-width: 420px) {
-  .addresses div { flex-direction: column; gap: 2px; }
-  .addresses dd { text-align: left; }
+.addresses dt { color: var(--muted); font-size: 15px; }
+.addresses dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.addresses a { color: var(--text); text-decoration: none; }
+.addresses a:hover { color: var(--accent); }
+/* Narrow screens: label above value, so no address breaks mid-string. */
+@media (max-width: 520px) {
+  .addresses dl > div { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 12px 0; }
+  .addresses dt { font-size: 14px; }
 }
 
-.note { margin: 16px 0 0; color: var(--muted); font-size: 15px; }
-
-.small { margin-top: 32px; color: var(--muted); font-size: 14px; }
-
-footer {
-  padding: 24px;
-  text-align: center;
+/* Footer: the one safety line. */
+.foot {
+  padding: 8px 0 clamp(28px, 4vw, 48px);
+}
+@media (min-width: 960px) {
+  .foot { padding-top: 28px; border-top: 1px solid var(--line); }
+}
+.foot p {
+  margin: 0;
+  font-size: 15px;
   color: var(--muted);
-  font-size: 13px;
-  border-top: 1px solid var(--line);
 }

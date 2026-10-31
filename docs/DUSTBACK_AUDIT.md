@@ -32,6 +32,8 @@ user could be asked to sign, and about trust.
   `FA:C6:17:45:…:91:03:3B:9C`. `keytool` on `android/app/debug.keystore` (committed
   since c5f2d73, password `android`, public repo) prints exactly this SHA-256.
 * `site/.well-known/README.md:11` documents it as "shared Android debug keystore".
+* It is live: a plain GET of `https://dustback.app/.well-known/assetlinks.json` on
+  31 October 2026 returned all three fingerprints, `FA:C6` included.
 * Effect: anyone can build an APK with package `app.dustback`, sign it with that public
   key, and wallets that check Digital Asset Links (Phantom on Android, via Mobile Wallet
   Adapter identity verification) will show it as the verified `dustback.app`. A
@@ -143,7 +145,9 @@ user could be asked to sign, and about trust.
 ### 10. Medium: the site has no security headers and posts emails to Apps Script
 
 * `site/` has no headers file, so the Worker serves it without a Content Security
-  Policy, framing protection or HSTS of its own.
+  Policy, framing protection or HSTS of its own. Confirmed on 31 October 2026: the
+  response for `https://dustback.app/` carries no `Content-Security-Policy`,
+  `Strict-Transport-Security`, `X-Frame-Options` or `X-Content-Type-Options` header.
 * `site/index.html:48` and `:117` post a tester form (email, handle) to a
   `script.google.com` web app with `fetch(..., { mode: 'no-cors' })`. That is the same
   technique phishing kits use to collect data, on a domain that also asks people to
@@ -167,10 +171,12 @@ user could be asked to sign, and about trust.
 The exact warning text decides the path; ask the owner for a screenshot. What the
 repository shows:
 
-1. **Not the public blocklist.** `dustback.app` is not in `phantom/blocklist`
-   `blocklist.yaml` (checked 31 October 2026). Two unrelated entries contain "sweepers"
-   (`degensweepers.online`, `degensweepers.top`). So the warning comes from Phantom's
-   own scoring (domain review or transaction simulation), not from that list.
+1. **Not the public blocklists.** `dustback.app` is not in `phantom/blocklist`
+   (`blocklist.yaml`, `whitelist.yaml`) nor in MetaMask's `eth-phishing-detect`
+   `src/config.json` (both checked 31 October 2026). Two unrelated Phantom entries
+   contain "sweepers" (`degensweepers.online`, `degensweepers.top`). So the warning comes
+   from Phantom's own scoring (domain review or transaction simulation), not from a
+   public list.
 2. **Drainer shaped transactions.** The phase 2 transaction is up to 12 `CloseAccount`
    instructions plus a `SystemProgram.transfer` to an address with no other history
    (`src/core/sweep.ts:107-114`, `src/core/swap.ts:178-205`); after swaps it can be a

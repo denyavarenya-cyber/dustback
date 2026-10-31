@@ -56,16 +56,16 @@ project page that quotes it; "not confirmed" means only secondary sources were f
 
 ## Decisions (31 October 2026)
 
-* Cleanup: 3 percent of reclaimed rent (owner's answer of 31 October; `cleanupFeeBps: 300`).
-  Note: `poe-engine/docs/DECISIONS.md` on main says 7 percent for the same date. Config
-  uses 3 percent until the owner settles which one stands.
+* Cleanup: **7 percent of reclaimed rent**, final (owner decision, matches
+  `poe-engine/docs/DECISIONS.md`; `cleanupFeeBps: 700`). Shown before signing, with the
+  amount in SOL. Section 3 keeps the earlier recommendation for the record.
 * Swap: 0.5 percent once Jupiter confirms in writing that it takes no share on `/build`.
   Until then swaps run as mainnet simulation only and never open the wallet.
 * Burning: off at launch.
 * Fee wallet: a new one from the owner; until its address arrives, config holds a
   placeholder that refuses to build anything to sign.
 
-## 3. Recommendation
+## 3. Recommendation (before the decision)
 
 **Swap: 0.5 percent (50 bps), as drafted.** Below Phantom's 0.85 percent, above
 Jupiter's own 0.1 percent for most pairs. On dust the fee in SOL is tiny either way;
@@ -87,6 +87,7 @@ What the difference means for one full transaction of 24 closed accounts
 |---|---|---|
 | 2 percent | 0.000978854 SOL | 0.047958866 SOL |
 | 3 percent | 0.001468281 SOL | 0.047469439 SOL |
+| **7 percent (decided)** | **0.00342599 SOL** | **0.04551173 SOL** |
 | 10 percent | 0.004894272 SOL | 0.044043448 SOL |
 
 Both values live in config (`cleanupFeeBps`, `swapFeeBps`), with hard caps of 20 and 2
@@ -101,9 +102,9 @@ Every number comes from the module and points to an account or a transaction.
 ```
 Close 24 empty token accounts
 Rent back             0.04894272 SOL    sum of the 24 accounts' lamports, listed below
-Noventia fee (3%)    -0.001468281 SOL   to <fee wallet, shortened>, inside the same transaction
+Noventia fee (7%)    -0.00342599 SOL    to <fee wallet, shortened>, inside the same transaction
 Network fee          -0.000005 SOL      1 transaction
-You receive           0.047469439 SOL
+You receive           0.04551173 SOL
 [list: token, account, rent back per account]
 ```
 

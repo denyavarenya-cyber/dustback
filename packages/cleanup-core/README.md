@@ -84,7 +84,7 @@ Errors are `CleanupError` with a `code`: `FEATURE_DISABLED`, `MAINNET_BLOCKED`,
 | `allowMainnet` | `false` | Stays false until the owner approves mainnet in writing. |
 | `features.android` / `features.web` | cleanup on, swap on | iOS has no switch: always off. |
 | `feeWallet` | `FEE_WALLET_PLACEHOLDER` | Public address only. The placeholder fails closed (`FEE_WALLET_NOT_SET`); `null` means the owner chose no fee. |
-| `cleanupFeeBps` | `300` | Owner decision of 31 October; hard cap 2000. |
+| `cleanupFeeBps` | `700` | Owner decision of 31 October (final); hard cap 2000. |
 | `swapFeeBps` | `50` | Draft; hard cap 200. |
 | `swapFeeTokenAccount` | `FEE_WALLET_PLACEHOLDER` | Wrapped SOL account of `feeWallet`; required when both are set. Checked on chain before each swap. |
 | `dustThresholdUsd` | `5` | |

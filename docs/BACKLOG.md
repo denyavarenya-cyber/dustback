@@ -14,8 +14,8 @@ One line per idea outside the current task. Not discussed or done until the owne
 - Font family tokens (IBM Plex Sans, IBM Plex Mono) in the app theme; cleanup screens already read `typography.family.mono` when it exists.
 - Switch the cleanup screens to the shared button once it is flat (no gradient, no glow).
 - Cleanup screen text into the app's i18n files (English strings live in `src/features/cleanup/strings.ts` for now).
-- `https://noventia.app/.well-known/assetlinks.json` with the Play app signing key, so Android wallets verify the Noventia app.
+- `https://noventia.app/.well-known/assetlinks.json` with the Play app signing key, so Android wallets verify the Noventia app (owner: later).
 - Swap preview screen on top of the mainnet simulation (no signing), once Jupiter confirms the fee terms.
 - Use agent 1's wallet connection in cleanup once it lands, instead of the minimal one in `src/features/cleanup/wallet`.
 - Run the cleanup flow on a real Android device and in Phantom on devnet before any mainnet step.
-- The Noventia mark for the dustback.app page once the owner provides the source file.
+- The Noventia mark for the dustback.app page once the owner provides an SVG or a transparent PNG; the text mark stays until then.

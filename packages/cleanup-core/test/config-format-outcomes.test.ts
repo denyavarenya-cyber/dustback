@@ -47,6 +47,16 @@ describe('config', () => {
     expect(code(() => assertCanBuild(real, 'web', 'cleanup'))).toBeUndefined();
   });
 
+  it('a fee wallet without a swap fee account opens cleanup and keeps swaps closed', () => {
+    // The owner gives the fee wallet first; the swap fee account can come later.
+    const config = createConfig({ feeWallet: ADDR.feeWallet });
+    expect(config.swapFeeTokenAccount).toBe(FEE_WALLET_PLACEHOLDER);
+    expect(cleanupFeeActive(config)).toBe(true);
+    expect(swapFeeActive(config)).toBe(false);
+    expect(code(() => assertCanBuild(config, 'android', 'cleanup'))).toBeUndefined();
+    expect(code(() => assertCanBuild(config, 'android', 'swap'))).toBe('FEE_WALLET_NOT_SET');
+  });
+
   it('iOS can never be switched on', () => {
     const config = createConfig({ features: { android: { cleanup: true, swap: true }, web: { cleanup: true, swap: true } } });
     expect(isFeatureEnabled(config, 'ios', 'cleanup')).toBe(false);

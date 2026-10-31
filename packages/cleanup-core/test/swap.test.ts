@@ -199,6 +199,9 @@ describe('prepareSwap on a recorded Jupiter response', () => {
     const w = world();
     await expectCode(swap(scan, w, createConfig()), 'FEE_WALLET_NOT_SET');
     expect(w.urls).toHaveLength(0);
+    // a real fee wallet is not enough: the swap fee account must be set too
+    await expectCode(swap(scan, w, createConfig({ feeWallet: ADDR.feeWallet })), 'FEE_WALLET_NOT_SET');
+    expect(w.urls).toHaveLength(0);
   });
 
   it('is off on iOS and refuses NFTs, frozen, empty and wrapped SOL accounts', async () => {

@@ -54,6 +54,17 @@ project page that quotes it; "not confirmed" means only secondary sources were f
 | Slerf batch incinerator | 8 percent of recovered SOL (search snippet) | [slerf.tools](https://slerf.tools/en-us/batch-incinerator/solana) | Not confirmed; the page did not show it |
 | DustBack (old) | 8 percent of rent plus swap output | `src/config.ts:10` | Our own code |
 
+## Decisions (31 October 2026)
+
+* Cleanup: 3 percent of reclaimed rent (owner's answer of 31 October; `cleanupFeeBps: 300`).
+  Note: `poe-engine/docs/DECISIONS.md` on main says 7 percent for the same date. Config
+  uses 3 percent until the owner settles which one stands.
+* Swap: 0.5 percent once Jupiter confirms in writing that it takes no share on `/build`.
+  Until then swaps run as mainnet simulation only and never open the wallet.
+* Burning: off at launch.
+* Fee wallet: a new one from the owner; until its address arrives, config holds a
+  placeholder that refuses to build anything to sign.
+
 ## 3. Recommendation
 
 **Swap: 0.5 percent (50 bps), as drafted.** Below Phantom's 0.85 percent, above

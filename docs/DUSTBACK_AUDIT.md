@@ -42,6 +42,10 @@ user could be asked to sign, and about trust.
   is missing, the `release` and `releaseDappstore` builds silently fall back to the
   debug key, so a "release" APK can be signed with the public key without anyone
   noticing.
+* Status 31 October: wrangler on this machine is not logged in, so the agent did not
+  deploy. `C:\Noventia\dustback-hotfix` holds the six live files byte for byte with only
+  that line removed, plus `OWNER_STEPS.md` (versions upload, then versions deploy; the
+  domains are not touched).
 * Fix (owner action, it is a production deploy): remove the `FA:C6` line from the live
   `assetlinks.json` now. Since the DustBack app is frozen, the whole file can go with
   the block E site. The repo copy is fixed in the block E branch.

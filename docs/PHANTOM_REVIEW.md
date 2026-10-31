@@ -1,120 +1,159 @@
-# Phantom і Blowfish: як зняти позначку з домену
+# Phantom: огляд домену dustback.app, готово до подання
 
-Чекліст для власника. Станом на 31 жовтня 2026. Кожен крок, який змінює живий сайт,
-DNS або подає форму, робить власник; агент нічого з цього не робить.
+Для власника. Станом на 1 листопада 2026. Форму подає власник; агент нічого не подає.
 
-## Що вже перевірено
+**Коли:** через тиждень після того, як нова сторінка запрацює на dustback.app.
+Phantom пише, що попередження про новий або змінений домен часто зникає саме, і
+просить звертатися, якщо воно тримається довше тижня.
 
-* `dustback.app` **немає** в публічному списку Phantom
-  ([phantom/blocklist](https://github.com/phantom/blocklist), файли `blocklist.yaml`
-  і `whitelist.yaml`) і немає в списку MetaMask
-  ([eth-phishing-detect](https://github.com/MetaMask/eth-phishing-detect), `src/config.json`).
-  Отже попередження йде з власної оцінки Phantom (домен або симуляція транзакції), а не
-  з публічного списку.
-* Живий `https://dustback.app/.well-known/assetlinks.json` віддає відбиток публічного
-  debug ключа `FA:C6:…:3B:9C` (знахідка 1 в `docs/DUSTBACK_AUDIT.md`). Будь-хто може
-  підписати клон застосунку цим ключем, і гаманець покаже його як перевірений dustback.app.
-* Сайт віддається без жодного захисного заголовка (CSP, HSTS, X-Frame-Options).
+* Сторінка запрацювала: `<дата деплою>` (агент впише в день деплою)
+* Подати не раніше: `<дата деплою + 7 днів>`
 
-## Кроки по порядку
+## Перед поданням (5 хвилин)
 
-### 1. Зафіксувати, яке саме попередження
-
-- [ ] Зробити знімок екрана попередження. Від тексту залежить шлях:
-  * "This domain is new or has not been reviewed yet": новий домен, крок 6.
-  * "This dApp could be malicious" під час транзакції: симуляція, кроки 5 і 6.
-  * Попередження про ідентичність застосунку при підключенні на Android: крок 2.
-  * Сторінка блокування на весь екран у розширенні: список блокування, крок 7.
-- [ ] Записати, де воно з'являється: розширення в браузері, мобільний Phantom, при
-  відкритті сайту, при підключенні, при підписі.
-
-### 2. Прибрати debug ключ з asset links (сьогодні, до будь-яких звернень)
-
-- [ ] На живому сайті видалити рядок `FA:C6:17:45:…:91:03:3B:9C` з
-  `/.well-known/assetlinks.json`. Оскільки застосунок DustBack заморожено, простіше
-  прибрати весь файл разом із новою сторінкою з блоку E.
-- [ ] Перевірити: `curl -s https://dustback.app/.well-known/assetlinks.json` більше не
-  містить `FA:C6`.
-- [ ] Коли в застосунку Noventia з'явиться підпис через гаманець на Android: у
-  `assetlinks.json` домену `noventia.app` лише відбиток ключа підпису з Play Console
-  (App integrity, App signing key certificate), ніколи не debug і не upload ключ, а в
-  `authorize` ідентичність з `uri: https://noventia.app`. Джерело:
-  [Phantom, App identity verification](https://docs.phantom.com/developer-powertools/domain-and-transaction-warnings).
-
-### 3. Викласти нову сторінку з блоку E
-
-- [ ] Одна статична сторінка: "DustBack тепер частина Noventia", посилання на
-  noventia.app, офіційні адреси. Без форми, без кнопки підключення гаманця, без слів
-  "sweep" і "sweeper".
-- [ ] Суворі заголовки: Content-Security-Policy без сторонніх джерел, HSTS,
-  X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy.
-- [ ] `/.well-known/security.txt` з контактом.
-- [ ] Перевірити заголовки: `curl -sI https://dustback.app/`.
-
-### 4. Перевірити інші списки (2 хвилини)
-
-- [ ] Google Safe Browsing:
-  [transparencyreport.google.com/safe-browsing/search?url=dustback.app](https://transparencyreport.google.com/safe-browsing/search?url=dustback.app).
-  Якщо є позначка: [форма помилки Safe Browsing](https://safebrowsing.google.com/safebrowsing/report_error/).
-- [ ] VirusTotal для URL: [virustotal.com](https://www.virustotal.com/gui/home/url).
-
-### 5. Транзакції (для застосунку Noventia, коли запрацює очищення)
-
-Phantom показує "This dApp could be malicious", коли не може передбачити результат
-транзакції. Рекомендації з
-[офіційної сторінки](https://docs.phantom.com/developer-powertools/domain-and-transaction-warnings)
-і [рецепта](https://docs.phantom.com/recipes/transactions/resolve-transaction-simulation-warnings.md),
-та що з цього вже зроблено в модулі `packages/cleanup-core`:
-
-- [x] Один підписант: лише гаманець користувача.
-- [x] Симуляція з `sigVerify: false` перед підписом; транзакція, що падає, не
-  пропонується.
-- [x] Ліміт обчислень задано явно (виміряно в симуляції, плюс 20 відсотків).
-- [x] Великі набори розбиваються на кілька транзакцій до 1232 байтів; свопи через
-  таблиці адрес (v0).
-- [x] Комісія Noventia всередині тієї самої транзакції, окремою інструкцією, а не
-  другим запитом після першого.
-- [ ] Phantom радить підписувати через `signTransaction` і відправляти через власний
-  RPC з preflight. Це рішення для екранів у застосунку (блок D).
-- [ ] Перевірити на devnet у справжньому Phantom, що попередження немає.
-
-### 6. Подати форму Phantom
-
-- [ ] Почекати тиждень після нової сторінки: попередження про новий домен часто
-  зникає саме. Phantom пише звертатися, якщо воно тримається довше тижня.
-- [ ] Форма огляду доменів Phantom (посилання з їхньої документації):
-  [docs.google.com/forms/d/1JgIxdmolgh_80xMfQKBKx9-QPC7LRdN6LHpFFW8BlKM/viewform](https://docs.google.com/forms/d/1JgIxdmolgh_80xMfQKBKx9-QPC7LRdN6LHpFFW8BlKM/viewform).
-- [ ] Текст для форми (англійською, підставити своє):
+1. Чи попередження ще є? Відкрити https://dustback.app у Phantom: у розширенні в
+   браузері й у мобільному застосунку. Якщо попередження немає, форму не подавати,
+   записати дату в `docs/BACKLOG.md`.
+2. Якщо є: знімок екрана попередження (форма не приймає файлів, але знімок
+   знадобиться, якщо Phantom відповість і попросить).
+3. Три перевірки в терміналі, усі мають пройти:
 
 ```
-Domain: dustback.app
-Status: retired product. The domain now serves one static page that says DustBack
-is part of Noventia and links to https://noventia.app. No wallet connection, no
-forms, no scripts from third parties.
-Source code: https://github.com/<owner>/dustback (public, MIT)
-Contact: <email on the domain>
-The old Android app is no longer distributed. Its asset links file has been
-removed from the domain.
-Please review the domain and clear the warning, or tell us what you still see.
+curl -s https://dustback.app/.well-known/assetlinks.json | grep -c "FA:C6"
+# 0  (debug ключ прибрано; сьогодні тут ще 1, це гарячий фікс, що чекає на wrangler)
+
+curl -sI https://dustback.app/ | grep -i "content-security-policy\|strict-transport\|x-frame-options"
+# три рядки
+
+curl -sI https://dustback.app/privacy | grep -i "^location"
+# location: https://noventia.app/privacy
 ```
 
-- [ ] Додати знімок попередження з кроку 1.
-- [ ] Окремо подати `noventia.app`, коли в застосунку з'явиться очищення: той самий
-  текст плюс короткий опис транзакцій (закриття порожніх рахунків, свопи через Jupiter,
-  комісія окремою інструкцією в тій самій транзакції).
+## Форма
 
-### 7. Blowfish
+https://docs.google.com/forms/d/1JgIxdmolgh_80xMfQKBKx9-QPC7LRdN6LHpFFW8BlKM/viewform
+("Phantom dApp Review Submission", 11 текстових полів, файлів не приймає).
+Нижче остаточний текст кожного поля, англійською, для копіювання. Змінити треба
+лише `<...>`.
 
-Blowfish зараз частина Phantom. Офіційної форми для Blowfish не знайдено. Інші
-розробники в жовтні 2026 подавали звернення як issue в
-[blowfishxyz/blocklist](https://github.com/blowfishxyz/blocklist/issues) (наприклад
-[#205](https://github.com/blowfishxyz/blocklist/issues/205),
-[#214](https://github.com/blowfishxyz/blocklist/issues/214)); це не офіційний канал.
+**1. Project Name** (обов'язкове)
+```
+DustBack (now part of Noventia)
+```
 
-- [ ] Лише якщо форма з кроку 6 не дала відповіді за два тижні: відкрити issue там же
-  з тим самим текстом і номером звернення Phantom, якщо він є.
+**2. Describe your dApp** (обов'язкове)
+```
+dustback.app was the website of DustBack, an app that closed empty Solana token accounts and returned their rent to the owner. DustBack is retired and is now part of Noventia.
 
-### 8. Після відповіді
+Since <date the page went live> the domain serves one static page. It says DustBack is now part of Noventia, links to https://noventia.app and lists the official addresses. The page has no wallet connection, no forms and no scripts, loads nothing from other sites, and asks for nothing.
 
-- [ ] Перевірити в розширенні та мобільному Phantom з чистого профілю.
-- [ ] Записати дату й результат у `docs/BACKLOG.md` одним рядком.
+Wallet cleanup now lives in the Noventia app. There, every transaction is built for the user, simulated before the wallet opens, and signed in the user's own wallet; the Noventia fee is a separate instruction inside the same transaction and its amount is shown before signing.
+```
+
+**3. dApp website URL** (обов'язкове)
+```
+https://dustback.app
+```
+
+**4. Your Name** (обов'язкове)
+```
+<ім'я власника>
+```
+
+**5. Your E-mail** (обов'язкове)
+```
+support@noventia.app
+```
+
+**6. Transaction Link** (обов'язкове)
+```
+Not applicable. The warning is shown for the domain itself. dustback.app has no wallet connection and makes no transactions.
+```
+
+**7. Team Information** (обов'язкове)
+```
+DustBack is now part of Noventia: https://noventia.app and https://noventia.xyz
+GitHub: https://github.com/noventiaproject-ops
+```
+
+**8. Social Media Handles** (обов'язкове)
+```
+X: https://x.com/NoventiaHq
+Discord: https://discord.com/invite/5HaTQHW2Es
+```
+
+**9. Repository Links** (необов'язкове)
+```
+https://github.com/denyavarenya-cyber/dustback (public; the page is in the site folder)
+```
+Якщо репозиторій уже перенесено, вставити нову адресу; стара все одно
+переадресовує на нову.
+
+**10. Community member who can vouch** (необов'язкове): залишити порожнім.
+
+**11. Any additional information** (необов'язкове)
+```
+What changed on dustback.app on <date the page went live>:
+- The old site was replaced by one static page (55 words) that points to https://noventia.app.
+- /.well-known/assetlinks.json no longer lists the public Android debug certificate (FA:C6:17:45:...:3B:9C). Only the two release certificates of the retired app.dustback Android app remain.
+- Strict headers on every response: Content-Security-Policy default-src 'none' (styles, fonts and images from the same origin only, form-action 'none', frame-ancestors 'none'), Strict-Transport-Security, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy no-referrer, Permissions-Policy, Cross-Origin-Opener-Policy and Cross-Origin-Resource-Policy same-origin.
+- Fonts are served from the domain itself; the page makes no request to any other site.
+- /privacy, /privacy/ and /privacy.html redirect with 301 to https://noventia.app/privacy.
+- /.well-known/security.txt with the contact support@noventia.app.
+If the warning is about something else, please tell us what you see and we will fix it.
+```
+
+## Що змінилося на dustback.app (для власника)
+
+| Було | Стало |
+|---|---|
+| Старий сайт DustBack | Одна статична сторінка, 55 слів: «DustBack is now part of Noventia», кнопка на noventia.app, офіційні адреси, рядок «Noventia never asks for your seed phrase or private key.» |
+| `assetlinks.json` з трьома відбитками, серед них публічний debug ключ `FA:C6:…:3B:9C` | Два відбитки release ключів застосунку `app.dustback`, debug ключа немає |
+| Жодного захисного заголовка | CSP `default-src 'none'`, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy, COOP і CORP |
+| Вбудований скрипт на сторінці | Нуль скриптів; шрифти IBM Plex з самого домену; жодного запиту на інші сайти |
+| `/privacy` віддавала стару сторінку (200) | 301 на https://noventia.app/privacy (усі три форми адреси, без другого переходу) |
+| | `/.well-known/security.txt`, `robots.txt`, сторінка 404 |
+
+Джерело сторінки: гілка `agent2/site`, тека `site/`, перевірка `node scripts/check-site.mjs`.
+
+## Знімки
+
+Сторінка в тому вигляді, що власник затвердив 31 жовтня (локальна збірка до деплою;
+знімки з живого сайту агент додасть як `live-*.png` у день деплою):
+
+| Ширина | Файл |
+|---|---|
+| 360 px | [phantom-review/page-360.png](phantom-review/page-360.png) |
+| 390 px | [phantom-review/page-390.png](phantom-review/page-390.png) |
+| 768 px | [phantom-review/page-768.png](phantom-review/page-768.png) |
+| 1440 px | [phantom-review/page-1440.png](phantom-review/page-1440.png) |
+| 404, 390 px | [phantom-review/404-390.png](phantom-review/404-390.png) |
+
+Знімок самого попередження Phantom робить власник (крок 2 вище).
+
+## Після подання
+
+* Відповідь Phantom приходить на support@noventia.app. Якщо за два тижні відповіді
+  немає: Blowfish тепер частина Phantom, офіційної форми для нього немає; інші
+  розробники відкривали issue в
+  [blowfishxyz/blocklist](https://github.com/blowfishxyz/blocklist/issues) з тим самим
+  текстом. Це не офіційний канал, лише запасний.
+* Перевірити в розширенні й мобільному Phantom з чистого профілю.
+* Записати дату й результат одним рядком у `docs/BACKLOG.md`.
+
+## Окремо, пізніше: noventia.app
+
+Коли очищення в застосунку Noventia вийде з devnet, подати ту саму форму для
+`https://noventia.app`, з посиланням на справжню транзакцію на Solscan у полі 6
+(форма його вимагає для попереджень під час транзакції). Що для цього вже зроблено
+в модулі `packages/cleanup-core`: один підписант (гаманець користувача), симуляція
+перед підписом і транзакції, що падають, не пропонуються, явний ліміт обчислень,
+до 1232 байтів на транзакцію, підпис через `signTransaction` і відправлення через
+власний RPC з preflight, комісія окремою інструкцією в тій самій транзакції.
+Ще треба: `assetlinks.json` на noventia.app з ключем підпису Play (у BACKLOG) і
+перевірка в справжньому Phantom на devnet.
+
+Що вже перевірено 31 жовтня: `dustback.app` немає в публічних списках
+[phantom/blocklist](https://github.com/phantom/blocklist) і
+[MetaMask eth-phishing-detect](https://github.com/MetaMask/eth-phishing-detect).
+Попередження йде з власної оцінки Phantom, а не з публічного списку.

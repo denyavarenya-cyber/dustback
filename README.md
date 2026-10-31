@@ -37,6 +37,8 @@ explorerTxUrl       link to each transaction
 | `planCleanup({ scan, selection, config, platform, lifetime })` | Pure preview: batches and unsigned bytes, no network. |
 | `prepareCleanup({ rpc, scan, selection, config, platform })` | Builds, simulates twice (measure, then the final bytes), returns `CleanupOffer` with only passing transactions plus `rejected` with plain reasons. |
 | `prepareSwap({ rpc, scan, request, config, platform })` | Jupiter `/swap/v2/build`, allowlist checks, lookup tables read from our RPC, compile, simulate, fee measured in the simulation. Returns `SwapOffer`. |
+| `reviewTokenCheck(answer, mint)` | The core API token check (`GET /v1/check/token/{mint}`) for the token a swap delivers, as the confirm screen shows it: facts first with their proofs, warnings highest level first with an appeal link, and a `gate` when a warning is level 3 or 4. An unreadable answer, or one for another mint, comes back as `unavailable` with a gate too. Never a verdict. |
+| `canConfirm(review, acknowledged)` | True with no gate, or once the gate's line was tapped (`acknowledged === gate.key`). |
 | `assertBurnAllowed(account, amountRaw, config)` | The burn guard on its own. |
 | `previewCleanup({ scan, selection, config, platform })` | Pure numbers for a selection with the same batching and fee rounding as `prepareCleanup`; works while the fee wallet is the placeholder, produces nothing signable. |
 | `submitSignedTransaction({ rpc, config, offered, signed })` | Refuses if the wallet changed the message or did not sign it, refuses mainnet before approval, checks the cluster, sends with preflight, returns the signature. |

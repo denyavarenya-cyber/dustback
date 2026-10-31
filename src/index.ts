@@ -70,6 +70,22 @@ export {
   type SwapRequest,
 } from './swap';
 export { explainSimulationError } from './simulation';
+export {
+  APPEAL_NOTE,
+  canConfirm,
+  chainText,
+  type ConfirmGate,
+  GATE_LEVEL,
+  LEVEL_LABEL,
+  NO_WARNINGS,
+  type ReviewFact,
+  type ReviewProof,
+  type ReviewWarning,
+  reviewTokenCheck,
+  type TokenReview,
+  unavailableReview,
+  type WarningLevel,
+} from './tokenCheck';
 export { submitSignedTransaction } from './submit';
 export { explorerAddressUrl, explorerTxUrl, isSignature, type Outcome, waitForOutcomes } from './outcomes';
 export { formatSol, formatTokenAmount, shorten } from './format';

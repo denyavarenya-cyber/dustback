@@ -58,6 +58,38 @@ function v0Message(
   return compressTransactionMessageUsingAddressLookupTables(message, tables);
 }
 
+/** Legacy and v0 transactions are capped at 1232 bytes. */
+export const LEGACY_SIZE_LIMIT = 1232;
+const MAX_LEGACY_ACCOUNT_KEYS = 64;
+
+function shortVecLength(n: number): number {
+  return n < 0x80 ? 1 : n < 0x4000 ? 2 : 3;
+}
+
+/**
+ * Exact serialized size of a legacy transaction with one signature, counted
+ * from the wire format without compiling: signatures, header, unique account
+ * keys, blockhash, then each instruction. Linear in the number of
+ * instructions, so batching stays fast on phones. Tests check it against the
+ * compiled size.
+ */
+export function legacySize(feePayer: string, instructions: readonly Instruction[]): number {
+  const keys = new Set<string>([feePayer]);
+  let ixBytes = 0;
+  for (const ix of instructions) {
+    keys.add(ix.programAddress);
+    const accounts = ix.accounts ?? [];
+    for (const a of accounts) keys.add(a.address);
+    const dataLength = ix.data?.length ?? 0;
+    ixBytes += 1 + shortVecLength(accounts.length) + accounts.length + shortVecLength(dataLength) + dataLength;
+  }
+  // A legacy message holds at most 64 account keys; more can never be sent.
+  if (keys.size > MAX_LEGACY_ACCOUNT_KEYS) return Number.POSITIVE_INFINITY;
+  const signatures = 1;
+  const message = 3 + shortVecLength(keys.size) + 32 * keys.size + 32 + shortVecLength(instructions.length) + ixBytes;
+  return shortVecLength(signatures) + 64 * signatures + message;
+}
+
 /** Size a legacy transaction would have; used to batch closes under the limit. */
 export function measureLegacy(
   feePayer: string,

@@ -23,7 +23,20 @@ import {
 import { assertCluster, getLatestBlockhash, type LatestBlockhash, type RpcTransport, simulateTransaction } from './rpc';
 import type { ScanResult } from './scan';
 import { explainSimulationError } from './simulation';
-import { compileLegacy, measureLegacy } from './tx';
+import { compileLegacy, type CompiledTransaction, LEGACY_SIZE_LIMIT, legacySize } from './tx';
+
+function sizeLimitFor(config: CleanupConfig): number {
+  return Math.min(LEGACY_SIZE_LIMIT, config.maxTransactionBytes);
+}
+
+/** Compiles with kit and checks the real size once more; the count must never be wrong silently. */
+function compileChecked(owner: string, lifetime: LatestBlockhash, ixs: Instruction[], config: CleanupConfig): CompiledTransaction {
+  const compiled = compileLegacy(owner, lifetime, ixs);
+  if (compiled.bytes > Math.min(compiled.sizeLimit, sizeLimitFor(config))) {
+    throw new CleanupError('TOO_LARGE', 'a transaction came out larger than the limit');
+  }
+  return compiled;
+}
 
 export interface BurnRequest {
   address: string;
@@ -211,13 +224,8 @@ function batchInstructions(owner: string, batch: Batch, config: CleanupConfig, c
  * Groups selected accounts into transactions, each measured against the size
  * limit with its fee instruction included. Pure: no network.
  */
-export function batchSelection(
-  owner: string,
-  items: SelectedItem[],
-  config: CleanupConfig,
-  lifetime: LatestBlockhash,
-): Batch[] {
-  const limitFor = (sizeLimit: number) => Math.min(sizeLimit, config.maxTransactionBytes);
+export function batchSelection(owner: string, items: SelectedItem[], config: CleanupConfig): Batch[] {
+  const limit = sizeLimitFor(config);
   const make = (list: SelectedItem[]): Batch => {
     const rent = list.reduce((s, i) => s + i.account.rentLamports, 0n);
     return { items: list, rentLamports: rent, feeLamports: feeFor(rent, config) };
@@ -227,8 +235,7 @@ export function batchSelection(
     // Measure with a fee instruction whenever fees are on, so rounding a fee
     // to zero can never be what lets a batch fit.
     const probe = { ...batch, feeLamports: cleanupFeeActive(config) ? 1n : 0n };
-    const m = measureLegacy(owner, lifetime, batchInstructions(owner, probe, config, MAX_COMPUTE_UNIT_LIMIT));
-    return m.bytes <= limitFor(m.sizeLimit);
+    return legacySize(owner, batchInstructions(owner, probe, config, MAX_COMPUTE_UNIT_LIMIT)) <= limit;
   };
 
   const batches: Batch[] = [];
@@ -302,11 +309,12 @@ export function planCleanup(args: {
   assertCanBuild(config, args.platform, 'cleanup');
   assertFresh(scan, config, args.now ?? new Date());
   const items = selectAccounts(scan, args.selection, config);
-  return batchSelection(scan.owner, items, config, args.lifetime).map((batch, i) => {
-    const compiled = compileLegacy(
+  return batchSelection(scan.owner, items, config).map((batch, i) => {
+    const compiled = compileChecked(
       scan.owner,
       args.lifetime,
       batchInstructions(scan.owner, batch, config, MAX_COMPUTE_UNIT_LIMIT),
+      config,
     );
     return describe(i, batch, config, compiled, MAX_COMPUTE_UNIT_LIMIT, args.lifetime, null);
   });
@@ -334,10 +342,6 @@ export interface CleanupPreview {
   totals: CleanupTotals;
 }
 
-const PREVIEW_LIFETIME: LatestBlockhash = {
-  blockhash: getAddressDecoder().decode(new Uint8Array(32).fill(1)),
-  lastValidBlockHeight: 0n,
-};
 // Stands in for the fee wallet when measuring sizes: same byte count as any address.
 const PREVIEW_FEE_RECIPIENT = getAddressDecoder().decode(new Uint8Array(32).fill(7));
 
@@ -364,7 +368,7 @@ export function previewCleanup(args: {
   const feeWalletSet = config.feeWallet !== FEE_WALLET_PLACEHOLDER;
   const measureConfig: CleanupConfig = feeWalletSet ? config : { ...config, feeWallet: PREVIEW_FEE_RECIPIENT };
   const items = selectAccounts(scan, args.selection, measureConfig);
-  const transactions = batchSelection(scan.owner, items, measureConfig, PREVIEW_LIFETIME).map((batch, index) => {
+  const transactions = batchSelection(scan.owner, items, measureConfig).map((batch, index) => {
     const accounts: PlannedAccount[] = batch.items.map((i) => ({
       address: i.account.address,
       mint: i.account.mint,
@@ -453,13 +457,13 @@ export async function prepareCleanup(args: {
 
   await assertCluster(rpc, config.cluster);
   const lifetime = await getLatestBlockhash(rpc);
-  const batches = batchSelection(scan.owner, items, config, lifetime);
+  const batches = batchSelection(scan.owner, items, config);
 
   for (const batch of batches) {
     const addresses = batch.items.map((i) => i.account.address);
     const reject = (reason: string, logs: string[]) => offer.rejected.push({ accounts: addresses, reason, logs });
 
-    const probe = compileLegacy(scan.owner, lifetime, batchInstructions(scan.owner, batch, config, MAX_COMPUTE_UNIT_LIMIT));
+    const probe = compileChecked(scan.owner, lifetime, batchInstructions(scan.owner, batch, config, MAX_COMPUTE_UNIT_LIMIT), config);
     const first = await simulateTransaction(rpc, probe.base64);
     if (first.err !== null) {
       reject(explainSimulationError(first.err, first.logs), first.logs);
@@ -467,7 +471,7 @@ export async function prepareCleanup(args: {
     }
     const used = first.unitsConsumed ?? MAX_COMPUTE_UNIT_LIMIT;
     const cuLimit = Math.min(MAX_COMPUTE_UNIT_LIMIT, Math.max(1_000, Math.ceil(used * config.computeUnitMargin)));
-    const final = compileLegacy(scan.owner, lifetime, batchInstructions(scan.owner, batch, config, cuLimit));
+    const final = compileChecked(scan.owner, lifetime, batchInstructions(scan.owner, batch, config, cuLimit), config);
     const check = await simulateTransaction(rpc, final.base64, addresses);
     if (check.err !== null) {
       reject(explainSimulationError(check.err, check.logs), check.logs);

@@ -1,0 +1,15 @@
+{
+  "notes": "Synthetic data in the exact JSON-RPC format. Not a real wallet.",
+  "address": "J3yNoWUjMV1qz7TB5fxpFe2g6aKcfuvRvyu67D5uff1u",
+  "account": {
+    "data": [
+      "AQAAAP//////////6AMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB9Y/bc0B7C9R+ABq7fKB2lfmeO2D7Vg3zw/BgX6lY6x7jFW0yhkdHqOJE5jFXUct9ObsQ+YM/8Bjr/9xHiTtKvYRVPxhbmTZe2c0amWQiItt2mgOsYkGhyby4RVjIIlIQmITbpbWR++gdGZ+ld1iGSrlDCnWYjIa89Dj8ZmS3bwA==",
+      "base64"
+    ],
+    "executable": false,
+    "lamports": 1586880,
+    "owner": "AddressLookupTab1e1111111111111111111111111",
+    "rentEpoch": 18446744073709552000,
+    "space": 184
+  }
+}

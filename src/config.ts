@@ -159,8 +159,10 @@ export function validateConfig(c: CleanupConfig): void {
   const addressOrUnset = (v: string | null) => v === null || v === FEE_WALLET_PLACEHOLDER || isAddress(v);
   if (!addressOrUnset(c.feeWallet)) fail('feeWallet is not a valid address');
   if (!addressOrUnset(c.swapFeeTokenAccount)) fail('swapFeeTokenAccount is not a valid address');
-  if (isRealAddress(c.feeWallet) && c.swapFeeBps > 0 && !isRealAddress(c.swapFeeTokenAccount)) {
-    fail('swapFeeBps is set but swapFeeTokenAccount is missing');
+  // An explicit null with a swap fee is a broken config. The placeholder is
+  // not: it means "not given yet", and only swaps refuse to build with it.
+  if (isRealAddress(c.feeWallet) && c.swapFeeBps > 0 && c.swapFeeTokenAccount === null) {
+    fail('swapFeeBps is set but swapFeeTokenAccount is null');
   }
   if (typeof c.swap.simulationOnly !== 'boolean') fail('swap.simulationOnly must be true or false');
   checkPositive('dustThresholdUsd', c.dustThresholdUsd);
@@ -219,8 +221,12 @@ export function assertCanBuild(config: CleanupConfig, platform: Platform, featur
   if (!isFeatureEnabled(config, platform, feature)) {
     throw new CleanupError('FEATURE_DISABLED', `${feature} is switched off on ${platform}`);
   }
-  if (config.feeWallet === FEE_WALLET_PLACEHOLDER || config.swapFeeTokenAccount === FEE_WALLET_PLACEHOLDER) {
+  if (config.feeWallet === FEE_WALLET_PLACEHOLDER) {
     throw new CleanupError('FEE_WALLET_NOT_SET', 'the fee wallet is not set yet');
+  }
+  // The swap fee account matters to swaps only; cleanup never uses it.
+  if (feature === 'swap' && config.swapFeeTokenAccount === FEE_WALLET_PLACEHOLDER) {
+    throw new CleanupError('FEE_WALLET_NOT_SET', 'the swap fee account is not set yet');
   }
   const simulationOnly = feature === 'swap' && config.swap.simulationOnly;
   if (config.cluster === 'mainnet-beta' && !config.allowMainnet && !simulationOnly) {

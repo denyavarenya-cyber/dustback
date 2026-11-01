@@ -98,7 +98,7 @@ import {
   PlannedTransaction,
   SweepPlan,
 } from './core/swap';
-import { signAndSendTransactions } from './core/wallet';
+import { connect, signAndSendTransactions } from './core/wallet';
 import { useSweeperStore } from './store';
 
 const mockScanWallet = scanWallet as jest.MockedFunction<typeof scanWallet>;
@@ -112,6 +112,7 @@ const mockFetchDustQuotes = fetchDustQuotes as jest.MockedFunction<
 const mockSignAndSend = signAndSendTransactions as jest.MockedFunction<
   typeof signAndSendTransactions
 >;
+const mockConnect = connect as jest.MockedFunction<typeof connect>;
 const mockBuildSweepPlan = buildSweepPlan as jest.MockedFunction<
   typeof buildSweepPlan
 >;
@@ -173,11 +174,13 @@ beforeEach(() => {
     scanId: 0,
     quoteProgress: null,
     wallet: null,
+    connectInterrupted: false,
     plan: null,
     planning: false,
     executing: false,
     confirming: false,
     sweepError: null,
+    sweepInterrupted: false,
     outcome: null,
   });
   mockScanWallet.mockResolvedValue(SCAN_RESULT);
@@ -625,6 +628,107 @@ describe('confirmSweep', () => {
     expect(state.sweepError).toMatch(/not rent-exempt/);
     expect(mockSignAndSend).not.toHaveBeenCalled();
     expect(state.outcome).toBeNull();
+  });
+});
+
+describe('connect troubleshooting', () => {
+  it('sets the interrupted outcome on a session-level connect failure', async () => {
+    mockConnect.mockResolvedValue({ status: 'interrupted' });
+    await useSweeperStore.getState().connectWallet();
+
+    const state = useSweeperStore.getState();
+    expect(state.connectInterrupted).toBe(true);
+    expect(state.connectError).toBeNull();
+    expect(state.wallet).toBeNull();
+  });
+
+  it('clears a stored auth token when connect is interrupted', async () => {
+    useSweeperStore.setState({
+      wallet: { address: 'addr', authToken: 'stale' },
+    });
+    mockConnect.mockResolvedValue({ status: 'interrupted' });
+
+    await useSweeperStore.getState().connectWallet();
+
+    expect(useSweeperStore.getState().wallet).toEqual({
+      address: 'addr',
+      authToken: '',
+    });
+  });
+
+  it('clears the outcome on retry and connects', async () => {
+    mockConnect.mockResolvedValueOnce({ status: 'interrupted' });
+    await useSweeperStore.getState().connectWallet();
+    expect(useSweeperStore.getState().connectInterrupted).toBe(true);
+
+    mockConnect.mockResolvedValueOnce({
+      status: 'connected',
+      session: { address: 'addr', authToken: 'tok' },
+    });
+    await useSweeperStore.getState().connectWallet();
+
+    const state = useSweeperStore.getState();
+    expect(state.connectInterrupted).toBe(false);
+    expect(state.wallet?.address).toBe('addr');
+  });
+
+  it('stays silent on a user decline', async () => {
+    mockConnect.mockResolvedValue({ status: 'cancelled' });
+    await useSweeperStore.getState().connectWallet();
+
+    const state = useSweeperStore.getState();
+    expect(state.connectInterrupted).toBe(false);
+    expect(state.connectError).toBeNull();
+  });
+
+  it('dismiss clears both interrupted flags', () => {
+    useSweeperStore.setState({
+      connectInterrupted: true,
+      sweepInterrupted: true,
+    });
+    useSweeperStore.getState().dismissTroubleshooting();
+    expect(useSweeperStore.getState().connectInterrupted).toBe(false);
+    expect(useSweeperStore.getState().sweepInterrupted).toBe(false);
+  });
+
+  it('marks a session failure during signing and clears it on retry', async () => {
+    seedPlan(makePlan([closesItem([emptyAccount()], true)]));
+    mockSignAndSend.mockRejectedValueOnce(
+      Object.assign(new Error('Wallet session failed. Try again.'), {
+        name: 'WalletSignError',
+        kind: 'session',
+      })
+    );
+
+    await useSweeperStore.getState().confirmSweep();
+    let state = useSweeperStore.getState();
+    expect(state.view).toBe('review');
+    expect(state.sweepInterrupted).toBe(true);
+    expect(state.sweepError).toMatch(/session failed/);
+    // dead session: token dropped so the retry authorizes fresh
+    expect(state.wallet?.authToken).toBe('');
+
+    await useSweeperStore.getState().confirmSweep();
+    state = useSweeperStore.getState();
+    expect(state.sweepInterrupted).toBe(false);
+    expect(state.view).toBe('done');
+    // the retry was handed the cleared token, not the stale one
+    expect(mockSignAndSend.mock.calls[1][0].authToken).toBe('');
+  });
+
+  it('a decline during signing does not mark interrupted', async () => {
+    seedPlan(makePlan([closesItem([emptyAccount()], true)]));
+    mockSignAndSend.mockRejectedValueOnce(
+      Object.assign(new Error('Request declined in wallet'), {
+        name: 'WalletSignError',
+        kind: 'declined',
+      })
+    );
+
+    await useSweeperStore.getState().confirmSweep();
+    const state = useSweeperStore.getState();
+    expect(state.sweepInterrupted).toBe(false);
+    expect(state.sweepError).toMatch(/declined/);
   });
 });
 

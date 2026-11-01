@@ -1,0 +1,97 @@
+{
+  "notes": "Synthetic data in the exact JSON-RPC format. Not a real wallet.",
+  "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+  "token": [
+    {
+      "pubkey": "8pjYL9taN8G1TH4NXPzXGSBFmGfGptb58UXkJuEAYqzV",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": false,
+              "mint": "Ej5vdiCdJALuYyc5MaRH2FiHNw9RsieyGuvvrKFp69aA",
+              "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+              "state": "frozen",
+              "tokenAmount": {
+                "amount": "0",
+                "decimals": 6,
+                "uiAmount": 0,
+                "uiAmountString": "0"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 2039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    },
+    {
+      "pubkey": "A5TNPoc2t7gf2H8bGsJcoGJhTb5JqtCJBPF7W8wLs2qX",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": false,
+              "mint": "EU9CDfbfk5VJJmZKz3Jg71pWWDyKKrScvq2pcUpZtq54",
+              "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+              "state": "frozen",
+              "tokenAmount": {
+                "amount": "500000",
+                "decimals": 6,
+                "uiAmount": 0.5,
+                "uiAmountString": "0.5"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 2039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    },
+    {
+      "pubkey": "4QVeeedSdAWUedY6dSxXth4upkU4fbFPxwHX54RZdxhf",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": false,
+              "mint": "HzYPaX6TsBkhxHDw1yWmQ7VsG4dDDgx89MpxuFVvoxv5",
+              "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+              "state": "initialized",
+              "tokenAmount": {
+                "amount": "0",
+                "decimals": 6,
+                "uiAmount": 0,
+                "uiAmountString": "0"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 2039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    }
+  ],
+  "token2022": [],
+  "prices": {
+    "EU9CDfbfk5VJJmZKz3Jg71pWWDyKKrScvq2pcUpZtq54": 0.000001
+  }
+}

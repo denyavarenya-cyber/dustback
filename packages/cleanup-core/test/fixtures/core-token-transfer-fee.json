@@ -1,0 +1,310 @@
+{
+  "meta": {
+    "apiVersion": 1,
+    "asOf": "2026-10-31T16:49:59Z",
+    "rulesVersion": "branches-2",
+    "thresholdsVersion": 2,
+    "branchConfigVersion": 2,
+    "cache": "hit",
+    "example": true,
+    "noindex": true,
+    "mock": true
+  },
+  "mint": "CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+  "token": [
+    {
+      "factId": "solana.mintState:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo:463761860",
+      "subjectId": "token:solana:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+      "kind": "solana.mintState",
+      "value": {
+        "tokenProgram": "token-2022",
+        "decimals": 5,
+        "supplyRaw": "94334233533633",
+        "mintAuthority": null,
+        "freezeAuthority": null,
+        "transferFee": {
+          "older": {
+            "epoch": 624,
+            "bps": 420,
+            "maxFeeRaw": "3906250000000000000"
+          },
+          "newer": {
+            "epoch": 698,
+            "bps": 269,
+            "maxFeeRaw": "3906250000000000000"
+          }
+        },
+        "permanentDelegate": null,
+        "transferHookProgram": null,
+        "defaultAccountState": null,
+        "extensions": [
+          "transferFeeConfig"
+        ]
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+          "slot": 463761860
+        }
+      ]
+    },
+    {
+      "factId": "solana.holderConcentration:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo:463761868",
+      "subjectId": "token:solana:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+      "kind": "solana.holderConcentration",
+      "value": {
+        "supplyRaw": "94334233533633",
+        "accountsRead": 20,
+        "top": 10,
+        "holdersCounted": 10,
+        "topSharePct": 44.84,
+        "programHolders": 1,
+        "excluded": {
+          "pools": {
+            "accounts": 0,
+            "sharePct": 0
+          },
+          "exchanges": {
+            "accounts": 0,
+            "sharePct": 0
+          },
+          "burn": {
+            "accounts": 0,
+            "sharePct": 0
+          }
+        }
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "Ft1URsGGW7phzUQWwoDL3ijBuBAE46M2AiPguZKLXUWN",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "i1Usmzgy9CFbepWFMFAEkauoXPvbaYiLd5zfQWmoTeP",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "CK9qmMUpHyXKwfQEDbytqGWpRGp3bGd4A9ACmvq7Ts1Y",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "3SbwJpDQitGwGEksDyvGJJbX6Ukgow2euY8V6MwQRKAA",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "A4BjMXT2BrmPGWYSK6uLdjzaDPiXmqsayynTaGocGyzE",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "A1do7sMgy8nFxUkv7pWRVVmVbHZuLh8PZtib87mZHaB4",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "2fpsuQHyn1yqqk6sF2dHUvsEyUwjnXMNaapSCj1mr5w1",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "By5y2Dcsiz29xJbKmqvvqqP2UsRDiJ4imBsnxakhCioj",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "8oZ3yghNR7YudAwt1jXfX4GhxYt8dgUytcLTdcsgs1UJ",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "5R65F3FYLngQPSgjDDkycAUDKvFBnS7ULAscV5Np4KKM",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "ByJ6Ko65GxaLmuktdEYkVYGM6a3JworC9b1Wst9aWRAN",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "EH7ZQRn9ivQyvzPDDJTZpVpJ1MSRwvNJKZ5wCsbgYhss",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "AfhavQoe9hP4AbivaSUYi7hbTJXC9CE7USDXhuBnAUJu",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "9YYYbcxcMx8GtnmkUZY4iywrFLYjrL3PgqwnHcoWrQJA",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "3C8dPSs7iW8bGaBMyf9jDx6FzvUWDLkwEmgNbdv8MQPU",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "EH4KqHJ4AZRHNtXvMb2nCwSpxZfrjG62F1H5XfNTQF3t",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "2bkX4EvRE3Fext2BbNKvNaGBSDFqWdfkZpmCqpsEhEWB",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "C8BHStAYHcBxAfZ2PiW2GYTR291HwGjUiRiivpbWKvF2",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "5JKuKJE8eCRrYnaHuW3kfy3VTfQcR43VBnhRN2tLc6Zu",
+          "slot": 463761868
+        },
+        {
+          "kind": "solana-account",
+          "address": "2BnLvqGJbbfcTmcevGxNDfvsgd6AhFDShdqp7ajBewSk",
+          "slot": 463761868
+        }
+      ]
+    },
+    {
+      "factId": "solana.tokenFirstTransaction:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo:5HcvWUSzGHUmn8hsUPFdGEphGpRpTk6YrUxbRs1fZmvfyadCYeQGcw6EGHHwTanZK5hgewQ1AKua8wNM9bNiiu1R",
+      "subjectId": "token:solana:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+      "kind": "solana.tokenFirstTransaction",
+      "value": {
+        "blockTime": 1685437584
+      },
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "5HcvWUSzGHUmn8hsUPFdGEphGpRpTk6YrUxbRs1fZmvfyadCYeQGcw6EGHHwTanZK5hgewQ1AKua8wNM9bNiiu1R"
+        }
+      ]
+    }
+  ],
+  "holders": {
+    "status": "checked",
+    "reason": null
+  },
+  "fundingClusters": {
+    "status": "not_checked",
+    "reason": "needs_paid_plan"
+  },
+  "official": null,
+  "issuerPowers": [],
+  "creator": "7MyTjmRygJoCuDBUtAuSugiYZFULD2SWaoUTmtjtRDzD",
+  "creatorCoverage": {
+    "subjectId": "wallet:solana:7MyTjmRygJoCuDBUtAuSugiYZFULD2SWaoUTmtjtRDzD",
+    "complete": false,
+    "transactionsRead": 100,
+    "readFrom": "2023-05-30T02:07:43Z",
+    "readTo": null,
+    "limitedBy": null,
+    "backfill": "none"
+  },
+  "creatorCard": {
+    "onSolanaSince": "2023-05-30",
+    "walletAgeDays": 1250,
+    "tokensLaunched": {
+      "value": 2,
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "428vdfxhFTjc4juedJZmiJxodn5aVb7tukYmwWBEm1kyFkwjEeK6RXh53q8sxe9Fq5d9HvbCziWhTg1HhRt5u5Am"
+        },
+        {
+          "kind": "solana-tx",
+          "signature": "5HcvWUSzGHUmn8hsUPFdGEphGpRpTk6YrUxbRs1fZmvfyadCYeQGcw6EGHHwTanZK5hgewQ1AKua8wNM9bNiiu1R"
+        }
+      ]
+    },
+    "liquidityPulls": {
+      "value": 0,
+      "proofs": []
+    },
+    "firstDayDumps": {
+      "value": 0,
+      "proofs": []
+    },
+    "movedOutFirstDay": {
+      "value": 1,
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "2UfmnhSkAoNXHUEuTrb5vjMm8fGuTKksiTsvR1EAGfjZZCB7tp6z4dxRcFjQD6KGpFea1X54xjLez1YDGkRNAqnd"
+        },
+        {
+          "kind": "solana-tx",
+          "signature": "26dRnZTxHgYnVAJCpRBMhfzfPQUa8YWRwyd9weSfc6uea4dsM2qEHfqfHNH1akgkuKQR7p9DzZoEfkCVZsRWbpbN"
+        }
+      ]
+    }
+  },
+  "launch": [
+    {
+      "factId": "solana.tokenCreated:5HcvWUSzGHUmn8hsUPFdGEphGpRpTk6YrUxbRs1fZmvfyadCYeQGcw6EGHHwTanZK5hgewQ1AKua8wNM9bNiiu1R:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+      "subjectId": "wallet:solana:7MyTjmRygJoCuDBUtAuSugiYZFULD2SWaoUTmtjtRDzD",
+      "kind": "solana.tokenCreated",
+      "value": {
+        "mint": "CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+        "program": "spl-token",
+        "blockTime": 1685437584
+      },
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "5HcvWUSzGHUmn8hsUPFdGEphGpRpTk6YrUxbRs1fZmvfyadCYeQGcw6EGHHwTanZK5hgewQ1AKua8wNM9bNiiu1R"
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "warningLevel": 2,
+      "code": "transferFee",
+      "about": "token",
+      "factIds": [
+        "solana.mintState:CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo:463761860"
+      ],
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+          "slot": 463761860
+        }
+      ],
+      "appealUrl": "https://noventia.app/appeal"
+    },
+    {
+      "warningLevel": 2,
+      "code": "movedOutFirstDay",
+      "about": "creator",
+      "factIds": [
+        "solana.tokenMovement:26dRnZTxHgYnVAJCpRBMhfzfPQUa8YWRwyd9weSfc6uea4dsM2qEHfqfHNH1akgkuKQR7p9DzZoEfkCVZsRWbpbN:0",
+        "solana.tokenMovement:2UfmnhSkAoNXHUEuTrb5vjMm8fGuTKksiTsvR1EAGfjZZCB7tp6z4dxRcFjQD6KGpFea1X54xjLez1YDGkRNAqnd:0"
+      ],
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "2UfmnhSkAoNXHUEuTrb5vjMm8fGuTKksiTsvR1EAGfjZZCB7tp6z4dxRcFjQD6KGpFea1X54xjLez1YDGkRNAqnd"
+        },
+        {
+          "kind": "solana-tx",
+          "signature": "26dRnZTxHgYnVAJCpRBMhfzfPQUa8YWRwyd9weSfc6uea4dsM2qEHfqfHNH1akgkuKQR7p9DzZoEfkCVZsRWbpbN"
+        }
+      ],
+      "appealUrl": "https://noventia.app/appeal"
+    }
+  ]
+}

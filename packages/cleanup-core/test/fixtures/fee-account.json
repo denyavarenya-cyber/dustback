@@ -1,0 +1,36 @@
+{
+  "notes": "Synthetic data in the exact JSON-RPC format. Not a real wallet.",
+  "address": "4QBu2HrUmtwdB7qNpJLKWmjBqB1ebKVi1qStSRLCYnai",
+  "value": {
+    "data": {
+      "parsed": {
+        "info": {
+          "isNative": true,
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "AibbrRbCeQMHQfFp3bpucjCxdyozm4oJnX6pfpVqu8s7",
+          "state": "initialized",
+          "tokenAmount": {
+            "amount": "5000000",
+            "decimals": 9,
+            "uiAmount": 0.005,
+            "uiAmountString": "0.005"
+          },
+          "rentExemptReserve": {
+            "amount": "2039280",
+            "decimals": 9,
+            "uiAmount": 0.00203928,
+            "uiAmountString": "0.00203928"
+          }
+        },
+        "type": "account"
+      },
+      "program": "spl-token",
+      "space": 165
+    },
+    "executable": false,
+    "lamports": 7039280,
+    "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "rentEpoch": 18446744073709552000,
+    "space": 165
+  }
+}

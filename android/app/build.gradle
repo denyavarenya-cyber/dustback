@@ -92,12 +92,13 @@ android {
         applicationId 'app.dustback'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 3
+        versionName "1.0.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
-    def keystorePropertiesFile = rootProject.file('keystore.properties')
+    // lives at the repo root, outside android/, so prebuild --clean cannot delete it
+    def keystorePropertiesFile = rootProject.file('../keystore.properties')
     def keystoreProperties = new Properties()
     if (keystorePropertiesFile.exists()) {
         keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
@@ -117,7 +118,17 @@ android {
                 keyPassword keystoreProperties['keyPassword']
             }
         }
+        // solana dapp store build: must NOT be the play upload key
+        dappstore {
+            if (keystorePropertiesFile.exists() && keystoreProperties['dappstoreStoreFile']) {
+                storeFile file(keystoreProperties['dappstoreStoreFile'])
+                storePassword keystoreProperties['dappstoreStorePassword']
+                keyAlias keystoreProperties['dappstoreKeyAlias']
+                keyPassword keystoreProperties['dappstoreKeyPassword']
+            }
+        }
     }
+    def hasDappstoreKey = keystorePropertiesFile.exists() && keystoreProperties['dappstoreStoreFile'] != null
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
@@ -133,6 +144,12 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
+        }
+        // identical to release except the signing key (assembleReleaseDappstore)
+        releaseDappstore {
+            initWith release
+            matchingFallbacks = ['release']
+            signingConfig hasDappstoreKey ? signingConfigs.dappstore : signingConfigs.debug
         }
     }
     packagingOptions {

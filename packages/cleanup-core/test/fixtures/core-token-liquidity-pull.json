@@ -1,0 +1,328 @@
+{
+  "meta": {
+    "apiVersion": 1,
+    "asOf": "2026-10-31T16:49:47Z",
+    "rulesVersion": "branches-2",
+    "thresholdsVersion": 2,
+    "branchConfigVersion": 2,
+    "cache": "hit",
+    "example": true,
+    "noindex": true,
+    "mock": true
+  },
+  "mint": "Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+  "token": [
+    {
+      "factId": "solana.mintState:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X:463761803",
+      "subjectId": "token:solana:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+      "kind": "solana.mintState",
+      "value": {
+        "tokenProgram": "spl-token",
+        "decimals": 6,
+        "supplyRaw": "999956926802633",
+        "mintAuthority": null,
+        "freezeAuthority": null,
+        "transferFee": null,
+        "permanentDelegate": null,
+        "transferHookProgram": null,
+        "defaultAccountState": null,
+        "extensions": []
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+          "slot": 463761803
+        }
+      ]
+    },
+    {
+      "factId": "solana.tokenMetadata:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X:463761806",
+      "subjectId": "token:solana:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+      "kind": "solana.tokenMetadata",
+      "value": {
+        "standard": "metaplex",
+        "name": "PUMPCAT",
+        "symbol": "PUMPCAT",
+        "nameKey": "pumpcat",
+        "symbolKey": "pumpcat"
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "5yy6gpest1x3R6X6ejHfTGwL27GBuJSb5LoQcLahg6qL",
+          "slot": 463761806
+        }
+      ]
+    },
+    {
+      "factId": "solana.holderConcentration:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X:463761810",
+      "subjectId": "token:solana:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+      "kind": "solana.holderConcentration",
+      "value": {
+        "supplyRaw": "999956926802633",
+        "accountsRead": 11,
+        "top": 10,
+        "holdersCounted": 10,
+        "topSharePct": 99.98,
+        "programHolders": 0,
+        "excluded": {
+          "pools": {
+            "accounts": 1,
+            "sharePct": 0.01
+          },
+          "exchanges": {
+            "accounts": 0,
+            "sharePct": 0
+          },
+          "burn": {
+            "accounts": 0,
+            "sharePct": 0
+          }
+        }
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "FaQJpnJAui1JDM5hZi5e8Jbr2uGJo8HGdGKaUB9Nr4pD",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "AuZ53xAU9DGymo2aqRgyPYBJEg4VvK7ysnqGLfWFyg8o",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "FNQFEKxDEnogbnWdmbT57xYwRasAqnb8zrxtYRXAGjAL",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "7zmTbqM1smxosW5dKWCy2s8YXFHk2aAw7yUKiFhrsKZe",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "3QJWf2jQBiPoXLQ2MhFboraYbWbx6NRWzLcCKYKCxqB6",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "9bGncHivReCKYdQSiJF7SMZpWFXL2n9HaAomBVb1C9MW",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "3NSKVeYseBDn3LgJRdGC59AmZRHoJevG1nxfSMfAFvyn",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "CntsDEqTx53y2uGTr2GYvdKKtyPHGGbYozw44gNzkBJy",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "FE8VA2Sde3AgzqJTGat632tgdMZ12Wrmdyh1q1DfScRp",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "CDTFrNexFxsu15rDjfXeFBcjayD6SWScuJzG2i7xbM8r",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "6Jsr7PnhxBhqvkPVyR8Qtm8dNu6Hao6piUfekPAtzQ5R",
+          "slot": 463761810
+        }
+      ]
+    },
+    {
+      "factId": "solana.tokenFirstTransaction:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X:3W6HEXvsNpVY2iuCNBTAxMGwKPrAZ1XiZcAg36vrckbjoJyCRPZx2sVoTpBeg9shXdZsQurH2WyFnvehYkaV7uU6",
+      "subjectId": "token:solana:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+      "kind": "solana.tokenFirstTransaction",
+      "value": {
+        "blockTime": 1793028468
+      },
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "3W6HEXvsNpVY2iuCNBTAxMGwKPrAZ1XiZcAg36vrckbjoJyCRPZx2sVoTpBeg9shXdZsQurH2WyFnvehYkaV7uU6"
+        }
+      ]
+    }
+  ],
+  "holders": {
+    "status": "checked",
+    "reason": null
+  },
+  "fundingClusters": {
+    "status": "not_checked",
+    "reason": "needs_paid_plan"
+  },
+  "official": null,
+  "issuerPowers": [],
+  "creator": "5J6bufLkUx97Lym3dhAhTSFixSeML9s6QADKDmydGDLP",
+  "creatorCoverage": {
+    "subjectId": "wallet:solana:5J6bufLkUx97Lym3dhAhTSFixSeML9s6QADKDmydGDLP",
+    "complete": true,
+    "transactionsRead": 8,
+    "readFrom": "2026-10-26T15:12:33Z",
+    "readTo": "2026-10-27T06:31:49Z",
+    "limitedBy": null,
+    "backfill": "none"
+  },
+  "creatorCard": {
+    "onSolanaSince": "2026-10-26",
+    "walletAgeDays": 5,
+    "tokensLaunched": {
+      "value": 2,
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "3W6HEXvsNpVY2iuCNBTAxMGwKPrAZ1XiZcAg36vrckbjoJyCRPZx2sVoTpBeg9shXdZsQurH2WyFnvehYkaV7uU6"
+        },
+        {
+          "kind": "solana-tx",
+          "signature": "5eKuaEPN61V7Kj1VVttNMMza2z2TB5T27qP9kF9VD6DA1X1Q5FN8pvwRDzJcsi6xxPVWEtXRoHr74babjaY9CSp5"
+        }
+      ]
+    },
+    "liquidityPulls": {
+      "value": 1,
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "4L3KCvNBBnDT7xBV8z8FstbCSyTk7DkMT8nAR8WffmVMsLyurU3Q4BW2w85c31WLrJS62gDAw16f1zGuTpSVAs32"
+        }
+      ]
+    },
+    "firstDayDumps": {
+      "value": 0,
+      "proofs": []
+    },
+    "movedOutFirstDay": {
+      "value": 0,
+      "proofs": []
+    }
+  },
+  "launch": [
+    {
+      "factId": "solana.tokenCreated:3W6HEXvsNpVY2iuCNBTAxMGwKPrAZ1XiZcAg36vrckbjoJyCRPZx2sVoTpBeg9shXdZsQurH2WyFnvehYkaV7uU6:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+      "subjectId": "wallet:solana:5J6bufLkUx97Lym3dhAhTSFixSeML9s6QADKDmydGDLP",
+      "kind": "solana.tokenCreated",
+      "value": {
+        "mint": "Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+        "program": "spl-token",
+        "blockTime": 1793028468
+      },
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "3W6HEXvsNpVY2iuCNBTAxMGwKPrAZ1XiZcAg36vrckbjoJyCRPZx2sVoTpBeg9shXdZsQurH2WyFnvehYkaV7uU6"
+        }
+      ]
+    },
+    {
+      "factId": "solana.liquidityRemoved:4L3KCvNBBnDT7xBV8z8FstbCSyTk7DkMT8nAR8WffmVMsLyurU3Q4BW2w85c31WLrJS62gDAw16f1zGuTpSVAs32:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+      "subjectId": "wallet:solana:5J6bufLkUx97Lym3dhAhTSFixSeML9s6QADKDmydGDLP",
+      "kind": "solana.liquidityRemoved",
+      "value": {
+        "mint": "Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+        "blockTime": 1793029484
+      },
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "4L3KCvNBBnDT7xBV8z8FstbCSyTk7DkMT8nAR8WffmVMsLyurU3Q4BW2w85c31WLrJS62gDAw16f1zGuTpSVAs32"
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "warningLevel": 3,
+      "code": "liquidityPull",
+      "about": "creator",
+      "factIds": [
+        "solana.liquidityRemoved:4L3KCvNBBnDT7xBV8z8FstbCSyTk7DkMT8nAR8WffmVMsLyurU3Q4BW2w85c31WLrJS62gDAw16f1zGuTpSVAs32:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X",
+        "solana.tokenMovement:4L3KCvNBBnDT7xBV8z8FstbCSyTk7DkMT8nAR8WffmVMsLyurU3Q4BW2w85c31WLrJS62gDAw16f1zGuTpSVAs32:2"
+      ],
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "4L3KCvNBBnDT7xBV8z8FstbCSyTk7DkMT8nAR8WffmVMsLyurU3Q4BW2w85c31WLrJS62gDAw16f1zGuTpSVAs32"
+        }
+      ],
+      "appealUrl": "https://noventia.app/appeal"
+    },
+    {
+      "warningLevel": 2,
+      "code": "topHoldersConcentrated",
+      "about": "token",
+      "factIds": [
+        "solana.holderConcentration:Cq4SiFC3rpx9zTCx2e2nQbweAB3siEGH2eW2CHRdiZ2X:463761810"
+      ],
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "FaQJpnJAui1JDM5hZi5e8Jbr2uGJo8HGdGKaUB9Nr4pD",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "AuZ53xAU9DGymo2aqRgyPYBJEg4VvK7ysnqGLfWFyg8o",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "FNQFEKxDEnogbnWdmbT57xYwRasAqnb8zrxtYRXAGjAL",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "7zmTbqM1smxosW5dKWCy2s8YXFHk2aAw7yUKiFhrsKZe",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "3QJWf2jQBiPoXLQ2MhFboraYbWbx6NRWzLcCKYKCxqB6",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "9bGncHivReCKYdQSiJF7SMZpWFXL2n9HaAomBVb1C9MW",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "3NSKVeYseBDn3LgJRdGC59AmZRHoJevG1nxfSMfAFvyn",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "CntsDEqTx53y2uGTr2GYvdKKtyPHGGbYozw44gNzkBJy",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "FE8VA2Sde3AgzqJTGat632tgdMZ12Wrmdyh1q1DfScRp",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "CDTFrNexFxsu15rDjfXeFBcjayD6SWScuJzG2i7xbM8r",
+          "slot": 463761810
+        },
+        {
+          "kind": "solana-account",
+          "address": "6Jsr7PnhxBhqvkPVyR8Qtm8dNu6Hao6piUfekPAtzQ5R",
+          "slot": 463761810
+        }
+      ],
+      "appealUrl": "https://noventia.app/appeal"
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+{
+  "meta": {
+    "apiVersion": 1,
+    "asOf": "2026-10-31T16:50:11Z",
+    "rulesVersion": "branches-2",
+    "thresholdsVersion": 2,
+    "branchConfigVersion": 2,
+    "cache": "hit",
+    "example": true,
+    "noindex": true,
+    "mock": true
+  },
+  "mint": "BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+  "token": [
+    {
+      "factId": "solana.mintState:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF:463761914",
+      "subjectId": "token:solana:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+      "kind": "solana.mintState",
+      "value": {
+        "tokenProgram": "token-2022",
+        "decimals": 6,
+        "supplyRaw": "999999999998000",
+        "mintAuthority": null,
+        "freezeAuthority": null,
+        "transferFee": null,
+        "permanentDelegate": null,
+        "transferHookProgram": null,
+        "defaultAccountState": null,
+        "extensions": [
+          "metadataPointer",
+          "tokenMetadata"
+        ]
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+          "slot": 463761914
+        }
+      ]
+    },
+    {
+      "factId": "solana.tokenMetadata:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF:463761914",
+      "subjectId": "token:solana:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+      "kind": "solana.tokenMetadata",
+      "value": {
+        "standard": "token-2022",
+        "name": "Tesla xStock",
+        "symbol": "TSLAx",
+        "nameKey": "teslaxstock",
+        "symbolKey": "tslax"
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+          "slot": 463761914
+        }
+      ]
+    },
+    {
+      "factId": "solana.holderConcentration:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF:463761918",
+      "subjectId": "token:solana:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+      "kind": "solana.holderConcentration",
+      "value": {
+        "supplyRaw": "999999999998000",
+        "accountsRead": 20,
+        "top": 10,
+        "holdersCounted": 10,
+        "topSharePct": 5.73,
+        "programHolders": 0,
+        "excluded": {
+          "pools": {
+            "accounts": 1,
+            "sharePct": 88.23
+          },
+          "exchanges": {
+            "accounts": 0,
+            "sharePct": 0
+          },
+          "burn": {
+            "accounts": 0,
+            "sharePct": 0
+          }
+        }
+      },
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "AzMu5NnX5aSeDyiTLBwWtjsecWLX7LEZxKc3B8NwnNQ4",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "2w32JYnTcVoj4UEh1Scz6S2jKs2x8K7WQ5JfaH1GyqAN",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "3L8uqNdwGrCQgyZp8ZKk1UtwdUJAFk34LWjyyhSSpMh3",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "Dq6FJoSM3iBCWHiu3uDqNhnoqokQakpEScgb3cYMc7ib",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "Dtp6ncqySfdxbMSdfZuNWvx1We5ujFf8vMKeuE1nnM8R",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "9zT2UjfxnxHfkA5ULwi3uCTWGuDxZ41HqmMkr5cmB8q",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "HmV75sBNFTiAucTPrR6PnPRF7f2tN3hTNjo5HyAXpzKP",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "E9vcoY1idPQ5nwkCNfedj4vsS1WWyQYZpaq32As2imKT",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "5G7UPZeJCJdSZuiV6rrCT9AZXrD9HbBYxZ2MQCh9Mjw2",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "6jaX9NFVcFMw3drycXxU4AKDJGSSU7k4qdkFacGDbEeo",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "J6GapKdYEiFFWDWtqqpHrKUHv8Kk7vBunoXr3T557gbK",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "4kVuxGo4yFR2ZDaP7MziEk9dh4a3SEaHg9eSzBPCXHgq",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "4jp7TPv5cJbEyaR3jAAZcZkUWvSxRrQM99xvySsD8q3w",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "4JzY23pz19pFa6C5KBzrRH8wfFUSuPBGCYnFNRoS8TE4",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "FLZuQDkeDuiKPRfbv6p4sUbMDR2bmCxxiVUwj2izWHCk",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "ywx1KhEmhZboZcDqUkHVprTQNd2n3nv5wnMFGwvvYTC",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "EGr7PKV99tZ5EQxhwAvUBHhoBiJ7e8rwcMNbuaBm84bw",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "5XTW1F9fUeze44fXP215HWv9iPBJxRK1wgDLzDxbWk9z",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "4NjEZutqzTLvBdfwaxt9kUJ55KSipbmZcJp8y2w3g2V6",
+          "slot": 463761918
+        },
+        {
+          "kind": "solana-account",
+          "address": "4HqwuYYNHi29C9R8rooQv4E4yc5kD2jx3ZUon6pJW5yo",
+          "slot": 463761918
+        }
+      ]
+    },
+    {
+      "factId": "solana.tokenFirstTransaction:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF:3GFcKBjRJwhLjmrNWqUy1CWJ3HNe8qJjDfDRZWqcNCy6Dt5Bhmd1Er5ob7VAYp1dyJcNfbFy7HMyw4EhkjRf4tmL",
+      "subjectId": "token:solana:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+      "kind": "solana.tokenFirstTransaction",
+      "value": {
+        "blockTime": 1793172474
+      },
+      "proofs": [
+        {
+          "kind": "solana-tx",
+          "signature": "3GFcKBjRJwhLjmrNWqUy1CWJ3HNe8qJjDfDRZWqcNCy6Dt5Bhmd1Er5ob7VAYp1dyJcNfbFy7HMyw4EhkjRf4tmL"
+        }
+      ]
+    }
+  ],
+  "holders": {
+    "status": "checked",
+    "reason": null
+  },
+  "fundingClusters": {
+    "status": "not_checked",
+    "reason": "needs_paid_plan"
+  },
+  "official": {
+    "kind": "tokenized-stock",
+    "ticker": "TSLAx",
+    "name": "Tesla xStock",
+    "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+    "issuer": "xStocks (Backed Finance)",
+    "source": "https://xstocks.fi/us/products",
+    "isThisMint": false,
+    "matchedOn": "ticker"
+  },
+  "issuerPowers": [],
+  "creator": null,
+  "creatorCoverage": null,
+  "creatorCard": null,
+  "launch": [],
+  "warnings": [
+    {
+      "warningLevel": 2,
+      "code": "notOfficialMint",
+      "about": "token",
+      "factIds": [
+        "solana.tokenMetadata:BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF:463761914"
+      ],
+      "proofs": [
+        {
+          "kind": "solana-account",
+          "address": "BBF3FfGm2hV7mGaJtHyFz2Yg5DhVqQKQYV4N2iisyCtF",
+          "slot": 463761914
+        }
+      ],
+      "appealUrl": "https://noventia.app/appeal"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "notes": "Synthetic data in the exact JSON-RPC format. Not a real wallet.",
+  "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+  "feeWallet": "AibbrRbCeQMHQfFp3bpucjCxdyozm4oJnX6pfpVqu8s7",
+  "feeAccount": "4QBu2HrUmtwdB7qNpJLKWmjBqB1ebKVi1qStSRLCYnai",
+  "userWsolAta": "2VvPAifLSbZk7eJs21zykft3GZesgkb1XNiAXVkUH4is",
+  "swapMint": "DWeFeZHcCFMcdzMtnkPAwJyA9zCwdtU95poUcgxBrCf3",
+  "swapInput": "3LVFqVfAJ77LyNcpSJTfVsx91ow99cZP4MMnhXSXgymf",
+  "usdcAccount": "49ayBQvJs8AC8P63fALRB6bQETtMg1152AYHikNzozGR",
+  "wsolAccount": "HXj6S9mM7RH6cYVnhXsQ52T8naqprNNAVAobh5qMKUn7",
+  "lookupTable": "J3yNoWUjMV1qz7TB5fxpFe2g6aKcfuvRvyu67D5uff1u",
+  "pools": [
+    "9SUNXakJwsmetrLcQ6DnSEUhtePNQuM7QEdNsg4KxJY6",
+    "DSGZTVXWUjCiRLwSmutAoPcmR3MdnGiRxQ1d84A2XqZG",
+    "7XyPu4AtCR3iQo932ERnHEqZ3H5EpSWVdZMnenMwewC7",
+    "3ZqsKZYAyG3AZyGaSKkzzGxUnWdigtBfD5CC7W4Rw9Vy"
+  ],
+  "stranger": "FdPoAWG3GB66MjCprJqkVXrJ9rEcFQ21XAddCCRWqySs"
+}

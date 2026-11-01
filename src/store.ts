@@ -108,11 +108,13 @@ interface SweeperState {
   quoteProgress: QuoteProgress | null;
   wallet: WalletSession | null;
   connectError: string | null;
+  connectInterrupted: boolean;
   plan: SweepPlan | null;
   planning: boolean;
   executing: boolean;
   confirming: boolean;
   sweepError: string | null;
+  sweepInterrupted: boolean;
   outcome: SweepOutcome | null;
   setAddress: (address: string) => void;
   restoreAddress: () => Promise<void>;
@@ -123,6 +125,7 @@ interface SweeperState {
   cancelReview: () => void;
   confirmSweep: () => Promise<void>;
   maybeRequestReview: () => Promise<void>;
+  dismissTroubleshooting: () => void;
   reset: () => void;
 }
 
@@ -141,11 +144,13 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
   quoteProgress: null,
   wallet: null,
   connectError: null,
+  connectInterrupted: false,
   plan: null,
   planning: false,
   executing: false,
   confirming: false,
   sweepError: null,
+  sweepInterrupted: false,
   outcome: null,
 
   setAddress: (address) => set({ address }),
@@ -249,7 +254,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
   },
 
   connectWallet: async () => {
-    set({ connectError: null });
+    set({ connectError: null, connectInterrupted: false });
     try {
       const result = await connect();
       if (result.status === 'connected') {
@@ -259,6 +264,12 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
           connectError:
             'No compatible wallet app found. Install Solflare or Phantom, then try again.',
         });
+      } else if (result.status === 'interrupted') {
+        // drop the token so the next attempt authorizes fresh
+        set((state) => ({
+          connectInterrupted: true,
+          wallet: state.wallet ? { ...state.wallet, authToken: '' } : null,
+        }));
       }
       // cancelled: stay on the form silently
     } catch {
@@ -301,7 +312,17 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
   cancelReview: () => {
     planCounter++;
     sweepEpoch++;
-    set({ view: 'results', plan: null, planning: false, sweepError: null });
+    set({
+      view: 'results',
+      plan: null,
+      planning: false,
+      sweepError: null,
+      sweepInterrupted: false,
+    });
+  },
+
+  dismissTroubleshooting: () => {
+    set({ connectInterrupted: false, sweepInterrupted: false });
   },
 
   confirmSweep: async () => {
@@ -309,7 +330,7 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
     if (!plan || !wallet || plan.transactions.length === 0) return;
     const epoch = sweepEpoch;
     const alive = () => sweepEpoch === epoch;
-    set({ executing: true, sweepError: null });
+    set({ executing: true, sweepError: null, sweepInterrupted: false });
     try {
       const connection = new Connection(RPC_URL, 'confirmed');
       const swapInputs = plan.transactions.flatMap((t) =>
@@ -531,14 +552,22 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       });
     } catch (e) {
       if (!alive()) return;
-      set({
+      const isWalletError = e instanceof Error && e.name === 'WalletSignError';
+      const interrupted =
+        isWalletError && (e as { kind?: string }).kind === 'session';
+      set((state) => ({
         executing: false,
         confirming: false,
-        sweepError:
-          e instanceof Error && e.name === 'WalletSignError'
-            ? e.message
-            : 'Sweep failed. Nothing was signed — try again.',
-      });
+        sweepInterrupted: interrupted,
+        // dead session: clear the token so the retry authorizes fresh
+        wallet:
+          interrupted && state.wallet
+            ? { ...state.wallet, authToken: '' }
+            : state.wallet,
+        sweepError: isWalletError
+          ? e.message
+          : 'Sweep failed. Nothing was signed — try again.',
+      }));
     }
   },
 
@@ -573,6 +602,8 @@ export const useSweeperStore = create<SweeperState>((set, get) => ({
       executing: false,
       confirming: false,
       sweepError: null,
+      sweepInterrupted: false,
+      connectInterrupted: false,
       outcome: null,
       scanId: state.scanId + 1,
     }));

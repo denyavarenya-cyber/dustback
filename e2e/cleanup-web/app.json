@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Cleanup web e2e",
+    "slug": "cleanup-web-e2e",
+    "version": "0.0.0",
+    "userInterfaceStyle": "dark",
+    "platforms": ["web"],
+    "web": { "bundler": "metro", "output": "single" }
+  }
+}

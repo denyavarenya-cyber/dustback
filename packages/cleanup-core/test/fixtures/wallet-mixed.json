@@ -1,0 +1,166 @@
+{
+  "notes": "Synthetic data in the exact JSON-RPC format. Not a real wallet.",
+  "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+  "token": [
+    {
+      "pubkey": "3LVFqVfAJ77LyNcpSJTfVsx91ow99cZP4MMnhXSXgymf",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": false,
+              "mint": "DWeFeZHcCFMcdzMtnkPAwJyA9zCwdtU95poUcgxBrCf3",
+              "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+              "state": "initialized",
+              "tokenAmount": {
+                "amount": "123456789",
+                "decimals": 5,
+                "uiAmount": 1234.56789,
+                "uiAmountString": "1234.56789"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 2039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    },
+    {
+      "pubkey": "49ayBQvJs8AC8P63fALRB6bQETtMg1152AYHikNzozGR",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": false,
+              "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+              "state": "initialized",
+              "tokenAmount": {
+                "amount": "250000000",
+                "decimals": 6,
+                "uiAmount": 250,
+                "uiAmountString": "250"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 2039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    },
+    {
+      "pubkey": "9BTA56cgcL9QDrnueZ8KALCMPyNa5kq1pf7uepP2W5Cv",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": false,
+              "mint": "FF2ZYCEPMwuyBQK7ixvH3p7SXfERcfxWmrCdnZpvxrwo",
+              "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+              "state": "initialized",
+              "tokenAmount": {
+                "amount": "0",
+                "decimals": 6,
+                "uiAmount": 0,
+                "uiAmountString": "0"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 2039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    },
+    {
+      "pubkey": "HXj6S9mM7RH6cYVnhXsQ52T8naqprNNAVAobh5qMKUn7",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": true,
+              "mint": "So11111111111111111111111111111111111111112",
+              "owner": "6QsYam3ophqqE8mDU5EvW8v1fM52mVmKJxAF1A4hmxQP",
+              "state": "initialized",
+              "tokenAmount": {
+                "amount": "50000000",
+                "decimals": 9,
+                "uiAmount": 0.05,
+                "uiAmountString": "0.05"
+              },
+              "rentExemptReserve": {
+                "amount": "2039280",
+                "decimals": 9,
+                "uiAmount": 0.00203928,
+                "uiAmountString": "0.00203928"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 52039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    },
+    {
+      "pubkey": "81sGk8Zcqw9VyVvGko1odTK2sRppU8MQ7oBSejTUYcMj",
+      "account": {
+        "data": {
+          "parsed": {
+            "info": {
+              "isNative": false,
+              "mint": "FDPgsn6kvBwVD5a3YXNufPdqcN1m27szZ46thbRRuaWV",
+              "owner": "FdPoAWG3GB66MjCprJqkVXrJ9rEcFQ21XAddCCRWqySs",
+              "state": "initialized",
+              "tokenAmount": {
+                "amount": "0",
+                "decimals": 6,
+                "uiAmount": 0,
+                "uiAmountString": "0"
+              }
+            },
+            "type": "account"
+          },
+          "program": "spl-token",
+          "space": 165
+        },
+        "executable": false,
+        "lamports": 2039280,
+        "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+      }
+    },
+    {
+      "pubkey": "not-an-address",
+      "account": {}
+    }
+  ],
+  "token2022": [],
+  "prices": {
+    "DWeFeZHcCFMcdzMtnkPAwJyA9zCwdtU95poUcgxBrCf3": 0.00002,
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": 1
+  }
+}

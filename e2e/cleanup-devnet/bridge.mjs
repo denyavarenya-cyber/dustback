@@ -6,12 +6,19 @@
 // start or sign if the RPC is not devnet.
 //
 // The app on the emulator reaches this through `adb reverse tcp:8799`.
+//
+// The public devnet RPC answers 429 when it is busy. Every request from this
+// process is retried with a growing pause, and the app's own RPC requests go
+// through POST /rpc here for the same reason (EXPO_PUBLIC_CLEANUP_RPC_URL).
+// Once the address is funded the process does not exit on an error: the setup
+// stops, says so, and resumes from where it stopped on POST /setup.
 import http from 'node:http';
 import {
   AccountRole,
   address,
   appendTransactionMessageInstructions,
-  createSolanaRpc,
+  createDefaultRpcTransport,
+  createSolanaRpcFromTransport,
   createTransactionMessage,
   generateKeyPairSigner,
   getAddressEncoder,
@@ -40,7 +47,28 @@ const TOKEN = address('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 const TOKEN22 = address('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
 const ATA_PROGRAM = address('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
 
-const rpc = createSolanaRpc(RPC_URL);
+// ─── RPC with retries ──────────────────────────────────────────────────────
+// 429, 5xx and network failures are retried; anything else is a real answer.
+const relayStats = { requests: 0, retries: 0 };
+function transient(e) {
+  const code = e?.context?.statusCode;
+  return typeof code === 'number' ? code === 429 || code >= 500 : true;
+}
+async function withRetry(fn, attempts = 10) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!transient(e) || attempt >= attempts) throw e;
+      const pause = Math.min(30_000, 1000 * 2 ** (attempt - 1));
+      relayStats.retries++;
+      log(`rpc busy (${e?.context?.statusCode ?? 'network'}), retry in ${pause / 1000} s`);
+      await sleep(pause);
+    }
+  }
+}
+const baseTransport = createDefaultRpcTransport({ url: RPC_URL });
+const rpc = createSolanaRpcFromTransport((config) => withRetry(() => baseTransport(config)));
 const addr = getAddressEncoder();
 const b64in = getBase64Encoder();
 const b64out = getBase64Decoder();
@@ -84,33 +112,63 @@ const feeWallet = await generateKeyPairSigner();
 log('owner', owner.address, 'extractable:', owner.keyPair.privateKey.extractable);
 log('fee wallet', feeWallet.address);
 
-async function confirm(signature, what) {
-  for (let i = 0; i < 90; i++) {
-    const { value } = await rpc.getSignatureStatuses([signature]).send();
-    const s = value[0];
+/**
+ * True once confirmed, false once the blockhash has expired with no trace of
+ * the transaction (it never landed, so sending again cannot double it).
+ * Throws if the transaction landed and failed.
+ */
+async function confirm(signature, what, lastValidBlockHeight) {
+  const deadline = Date.now() + 10 * 60_000;
+  for (;;) {
+    let s = null;
+    try {
+      ({ value: [s] } = await rpc.getSignatureStatuses([signature], { searchTransactionHistory: true }).send());
+    } catch {
+      log('status check failed, will retry');
+    }
     if (s?.err) throw new Error(`${what} failed: ${json(s.err)}`);
-    if (s && (s.confirmationStatus === 'confirmed' || s.confirmationStatus === 'finalized')) return;
-    await sleep(1000);
+    if (s && (s.confirmationStatus === 'confirmed' || s.confirmationStatus === 'finalized')) return true;
+    if (!s && lastValidBlockHeight !== undefined) {
+      try {
+        const height = await rpc.getBlockHeight({ commitment: 'confirmed' }).send();
+        if (height > lastValidBlockHeight) {
+          const { value: [again] } = await rpc.getSignatureStatuses([signature], { searchTransactionHistory: true }).send();
+          if (!again) return false;
+        }
+      } catch {
+        log('block height check failed, will retry');
+      }
+    }
+    if (Date.now() > deadline) throw new Error(`${what}: no answer about ${signature} in 10 minutes`);
+    await sleep(2000);
   }
-  throw new Error(`${what} not confirmed: ${signature}`);
 }
 
 const setup = [];
 async function send(what, instructions) {
-  const { value: blockhash } = await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send();
-  const message = pipe(
-    createTransactionMessage({ version: 0 }),
-    (m) => setTransactionMessageFeePayerSigner(owner, m),
-    (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-    (m) => appendTransactionMessageInstructions(instructions, m),
-  );
-  const tx = await signTransactionMessageWithSigners(message);
-  const signature = getSignatureFromTransaction(tx);
-  await rpc.sendTransaction(getBase64EncodedWireTransaction(tx), { encoding: 'base64', preflightCommitment: 'confirmed' }).send();
-  await confirm(signature, what);
-  setup.push({ what, signature });
-  log('setup', what, signature);
-  return signature;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const { value: blockhash } = await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send();
+    const message = pipe(
+      createTransactionMessage({ version: 0 }),
+      (m) => setTransactionMessageFeePayerSigner(owner, m),
+      (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
+      (m) => appendTransactionMessageInstructions(instructions, m),
+    );
+    const tx = await signTransactionMessageWithSigners(message);
+    const signature = getSignatureFromTransaction(tx);
+    try {
+      await rpc.sendTransaction(getBase64EncodedWireTransaction(tx), { encoding: 'base64', preflightCommitment: 'confirmed' }).send();
+    } catch (e) {
+      log('send refused:', e?.message ?? e); // confirm() below tells whether it landed anyway
+    }
+    if (await confirm(signature, what, blockhash.lastValidBlockHeight)) {
+      setup.push({ what, signature });
+      log('setup', what, signature);
+      return signature;
+    }
+    log('setup', what, 'expired without landing, sending again');
+  }
+  throw new Error(`${what}: did not land in 5 attempts`);
 }
 
 const signerMeta = (s, writable) => ({ address: s.address, role: writable ? AccountRole.WRITABLE_SIGNER : AccountRole.READONLY_SIGNER, signer: s });
@@ -191,7 +249,7 @@ async function fund() {
       log('balance check failed, will retry');
     }
     if (value >= NEEDED) {
-      const sigs = await rpc.getSignaturesForAddress(owner.address, { limit: 5 }).send();
+      const sigs = await rpc.getSignaturesForAddress(owner.address, { limit: 5 }).send().catch(() => []);
       setup.push({ what: `funded with ${value} lamports`, signature: sigs[0]?.signature ?? null });
       log('funded', String(value));
       return;
@@ -201,22 +259,51 @@ async function fund() {
   throw new Error(`not funded within ${WAIT_MIN} minutes`);
 }
 
-await fund();
-// The fee wallet starts above the rent-exempt minimum, as a real fee wallet would.
-await send('fund fee wallet', [ix.transfer(feeWallet.address, 1_000_000n)]);
-
+// ─── Setup, resumable ──────────────────────────────────────────────────────
+const PLAN = [
+  ['empty', TOKEN],
+  ['empty', TOKEN],
+  ['empty', TOKEN],
+  ['empty', TOKEN],
+  ['empty', TOKEN22],
+  ['nft', TOKEN],
+  ['frozen', TOKEN],
+  ['balance', TOKEN],
+];
 const accounts = [];
-for (let i = 0; i < 4; i++) accounts.push(await makeAccount('empty'));
-accounts.push(await makeAccount('empty', TOKEN22));
-accounts.push(await makeAccount('nft'));
-accounts.push(await makeAccount('frozen'));
-accounts.push(await makeAccount('balance'));
-log('accounts ready', accounts.length);
+let feeFunded = false;
+let ready = false;
+let preparing = false;
+
+async function prepare() {
+  if (ready || preparing) return;
+  preparing = true;
+  try {
+    // The fee wallet starts above the rent-exempt minimum, as a real fee wallet would.
+    if (!feeFunded) {
+      await send('fund fee wallet', [ix.transfer(feeWallet.address, 1_000_000n)]);
+      feeFunded = true;
+    }
+    while (accounts.length < PLAN.length) {
+      const [kind, program] = PLAN[accounts.length];
+      await sleep(1500); // gentle on the public RPC
+      accounts.push(await makeAccount(kind, program));
+    }
+    log('accounts ready', accounts.length);
+    ready = true;
+    log(`READY http://127.0.0.1:${PORT} fee=${feeWallet.address}`);
+  } catch (e) {
+    log(`SETUP STOPPED after ${accounts.length} of ${PLAN.length} accounts: ${e?.message ?? e}. The key is still here; POST /setup resumes.`);
+  } finally {
+    preparing = false;
+  }
+}
 
 // ─── Signing for the app ───────────────────────────────────────────────────
 const signed = [];
 
 async function signOne(base64) {
+  if (!ready) throw new Error('setup is not finished');
   const tx = txDecoder.decode(b64in.encode(base64));
   const msg = msgDecoder.decode(tx.messageBytes);
   if (msg.staticAccounts[0] !== owner.address) throw new Error('fee payer is not the test wallet');
@@ -301,6 +388,23 @@ const server = http.createServer(async (req, res) => {
     res.end(json(body));
   };
   try {
+    // The app's RPC requests, passed to devnet (and only devnet) with retries.
+    // Kept under the app's own 20 s request timeout.
+    if (req.method === 'POST' && req.url === '/rpc') {
+      const body = await readBody(req);
+      relayStats.requests++;
+      const out = await withRetry(async () => {
+        const r = await fetch(RPC_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body, signal: AbortSignal.timeout(15_000) });
+        if (r.status === 429 || r.status >= 500) throw Object.assign(new Error(`HTTP ${r.status}`), { context: { statusCode: r.status } });
+        return { status: r.status, text: await r.text() };
+      }, 4);
+      res.writeHead(out.status, { 'content-type': 'application/json' });
+      return res.end(out.text);
+    }
+    if (req.method === 'POST' && req.url === '/setup') {
+      prepare();
+      return reply(202, { ready, accounts: accounts.length });
+    }
     if (req.method === 'GET' && req.url === '/address') return reply(200, { address: owner.address });
     if (req.method === 'POST' && req.url === '/sign') {
       const { transactions } = JSON.parse(await readBody(req));
@@ -309,7 +413,7 @@ const server = http.createServer(async (req, res) => {
       for (const t of transactions) out.push(await signOne(t));
       return reply(200, { signed: out });
     }
-    if (req.method === 'GET' && req.url === '/state') return reply(200, { owner: owner.address, feeWallet: feeWallet.address, setup, accounts, signed });
+    if (req.method === 'GET' && req.url === '/state') return reply(200, { owner: owner.address, feeWallet: feeWallet.address, ready, setup, accounts, signed, relay: relayStats });
     if (req.method === 'GET' && req.url === '/verify') return reply(200, await verify());
     return reply(404, { error: 'not found' });
   } catch (e) {
@@ -317,4 +421,16 @@ const server = http.createServer(async (req, res) => {
     return reply(500, { error: String(e?.message ?? e) });
   }
 });
-server.listen(PORT, '127.0.0.1', () => log(`READY http://127.0.0.1:${PORT} fee=${feeWallet.address}`));
+server.listen(PORT, '127.0.0.1', () => log(`listening on http://127.0.0.1:${PORT}, fee wallet ${feeWallet.address}`));
+
+try {
+  await fund();
+} catch (e) {
+  log(`STOPPED before funding: ${e?.message ?? e}`);
+  process.exit(1);
+}
+// From here on the address holds funds: an unexpected error must not end the
+// process, or the key and the funds go with it.
+process.on('uncaughtException', (e) => log('unexpected, still running:', e?.message ?? e));
+process.on('unhandledRejection', (e) => log('unexpected, still running:', e?.message ?? e));
+await prepare();

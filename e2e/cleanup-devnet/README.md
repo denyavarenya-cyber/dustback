@@ -19,6 +19,15 @@ folder to `bridgeWallet.ts`, which asks the bridge for the address and the
 signatures. Everything else (scan, fee, build, simulation, submit, outcomes) is
 the app's code and @noventia/cleanup-core.
 
+The public devnet RPC answers 429 when busy. The bridge retries its own
+requests with a growing pause, and the app's RPC goes through the bridge's
+`POST /rpc` (`EXPO_PUBLIC_CLEANUP_RPC_URL=http://127.0.0.1:8799/rpc`), which
+passes each request to devnet unchanged and retries on 429. The chain is still
+the only source for the checks. Once the address is funded the bridge does not
+exit on an error: the setup stops, says `SETUP STOPPED`, and `POST /setup`
+resumes it; a setup transaction is sent again only after its blockhash expired
+without it landing.
+
 ## Files
 
 | File | What it does |
@@ -41,7 +50,8 @@ the app's code and @noventia/cleanup-core.
    GIT_CONFIG_VALUE_0=ssh://git@github.com/noventiaproject-ops/dustback.git`.
 2. Boot the emulator; install Expo Go for SDK 54 (the version comes from
    `https://api.expo.dev/v2/versions/latest`, `sdkVersions["54.0.0"]`).
-3. `bash .e2e/run-devnet.sh <out-dir>` from the checkout.
+3. `FUND_WAIT_MIN=720 bash .e2e/run-devnet.sh <out-dir>` from the checkout
+   (minutes to wait for funding; default 60).
 4. When it prints `FUND <address>`, send 0.1 devnet SOL or more to that
    address at https://faucet.solana.com. The RPC faucet is closed on devnet
    (HTTP 410), and the web faucet asks for a captcha or a GitHub sign-in.

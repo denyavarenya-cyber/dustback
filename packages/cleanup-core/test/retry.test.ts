@@ -3,7 +3,20 @@ import { describe, expect, it } from 'vitest';
 import { planCleanup } from '../src/cleanup';
 import { GENESIS_HASH } from '../src/constants';
 import { isCleanupError } from '../src/errors';
-import { createCoreRpcTransport, createHttpTransport, RETRY_DEFAULTS } from '../src/rpc';
+import { PROGRAM_ID } from '../src/accounts';
+import {
+  createCoreRpcTransport,
+  createHttpTransport,
+  getGenesisHash,
+  getLatestBlockhash,
+  getMultipleAccounts,
+  getParsedAccount,
+  getSignatureStatuses,
+  getTokenAccountsByOwner,
+  RETRY_DEFAULTS,
+  type RpcTransport,
+  simulateTransaction,
+} from '../src/rpc';
 import { submitSignedTransaction, wasSent } from '../src/submit';
 import { BLOCKHASH, NOW, scanFixture, testConfig } from './helpers';
 
@@ -70,10 +83,27 @@ describe('RPC transport: too many requests', () => {
   });
 
   it('honours Retry-After, never longer than the cap', async () => {
-    const node = fakeNode({ getSlot: [{ status: 429, retryAfter: '3' }, { status: 429, retryAfter: '600' }, ok(1)] });
+    const node = fakeNode({ getSlot: [{ status: 429, retryAfter: '3' }, { status: 429, retryAfter: '30' }, ok(1)] });
     const waits: number[] = [];
     await transport(node, waits, () => 0)('getSlot', []);
     expect(waits).toEqual([3_000, RETRY_DEFAULTS.maxDelayMs]);
+  });
+
+  it('a limit for the hour or the day stops at once and says when, without waiting', async () => {
+    const at = Date.parse('2026-11-01T21:30:00Z');
+    const t = (node: ReturnType<typeof fakeNode>, waits: number[]) =>
+      createHttpTransport('https://rpc.example', { fetchImpl: node.fetchImpl, retry: { random: () => 1, sleep: async (ms) => void waits.push(ms), now: () => at } });
+    const day = fakeNode({ getSlot: [{ status: 429, retryAfter: '9000' }, ok(1)] });
+    const waits: number[] = [];
+    const e = await errorOf(() => t(day, waits)('getSlot', []));
+    expect(e.code).toBe('RATE_LIMITED');
+    expect(e.message).toBe('The limit for now is reached. Nothing was sent. Try again after 00:00 UTC.');
+    expect(day.calls).toHaveLength(1);
+    expect(waits).toEqual([]);
+    const hour = fakeNode({ sendTransaction: [{ status: 429, retryAfter: '1800' }] });
+    expect((await errorOf(() => t(hour, [])('sendTransaction', []))).message).toBe(
+      'The limit for now is reached, so the transaction was not sent. Nothing left your wallet. Try again in 30 minutes.',
+    );
   });
 
   it('stops after the set number of tries with a plain message', async () => {
@@ -237,9 +267,9 @@ describe('the cleanup RPC through the core relay', () => {
       expect(e.message).toBe("Cleanup has reached today's limit, so the transaction was not sent. Nothing left your wallet. Try again after 00:00 UTC.");
     });
 
-    it('a 502 or 504 from the relay may have been forwarded: never sent again', async () => {
+    it('upstream_failed, or a 502 or 504 without a code, may have been forwarded: never sent again', async () => {
       const unsigned = await offered();
-      for (const [answer, filler] of [[refusal(502, 'source_unavailable'), 0x34], [{ status: 504 }, 0x35]] as [Answer, number][]) {
+      for (const [answer, filler] of [[refusal(502, 'upstream_failed'), 0x34], [{ status: 504 }, 0x35], [{ status: 502 }, 0x36]] as [Answer, number][]) {
         const s = signed(unsigned, filler);
         const node = fakeNode({ getGenesisHash: [genesis], sendTransaction: [answer, ok(s.sig)] });
         const rpc = core(node);
@@ -248,5 +278,64 @@ describe('the cleanup RPC through the core relay', () => {
         expect((await errorOf(() => submitSignedTransaction({ rpc, config: testConfig(), offered: unsigned, signed: s.tx }))).code).toBe('ALREADY_SENT');
       }
     });
+  });
+});
+
+describe('every call the module makes fits the core relay (core-api 1.2.0)', () => {
+  // The relay's allowlist and the config keys it relays, from core-api 1.2.0 (poe-engine
+  // src/server/rpc.ts, RPC_METHODS and the per-method checks). Checked on 1 November 2026
+  // against the relay's own parser with every call recorded from this test suite.
+  const READ = ['encoding', 'commitment', 'minContextSlot', 'dataSlice'];
+  const ALLOWED: Record<string, { keys: string[]; configAt: number | null }> = {
+    getGenesisHash: { keys: [], configAt: null },
+    getLatestBlockhash: { keys: ['commitment', 'minContextSlot'], configAt: 0 },
+    getTokenAccountsByOwner: { keys: ['encoding', 'commitment', 'minContextSlot'], configAt: 2 },
+    getAccountInfo: { keys: READ, configAt: 1 },
+    getMultipleAccounts: { keys: READ, configAt: 1 },
+    getSignatureStatuses: { keys: ['searchTransactionHistory'], configAt: 1 },
+    simulateTransaction: { keys: ['encoding', 'sigVerify', 'replaceRecentBlockhash', 'commitment', 'minContextSlot', 'innerInstructions', 'accounts'], configAt: 1 },
+    sendTransaction: { keys: ['encoding', 'skipPreflight', 'preflightCommitment', 'maxRetries', 'minContextSlot'], configAt: 1 },
+  };
+
+  it('methods in the allowlist, config keys the relay forwards, token programs only', async () => {
+    const calls: { method: string; params: readonly unknown[] }[] = [];
+    const record: RpcTransport = async (method, params) => {
+      calls.push({ method, params });
+      throw new Error('recorded');
+    };
+    const tryIt = async (f: () => Promise<unknown>) => {
+      try {
+        await f();
+      } catch {
+        // only the request matters here
+      }
+    };
+    const A = '4Nd1mBQtrMJVYVfKf2PJy9NZUZdTAsp7D4xWLs4gDB4T';
+    await tryIt(() => getGenesisHash(record));
+    await tryIt(() => getLatestBlockhash(record));
+    await tryIt(() => getTokenAccountsByOwner(record, A, PROGRAM_ID.token));
+    await tryIt(() => getTokenAccountsByOwner(record, A, PROGRAM_ID.token2022));
+    await tryIt(() => getMultipleAccounts(record, [A]));
+    await tryIt(() => getParsedAccount(record, A));
+    await tryIt(() => getSignatureStatuses(record, ['2T5YSYCEKzfio3eCVzxH9rjxyvnTi9LCEbVJxy5qAtjx4PdermuVuTah3tbtz8KXGAiQUQQ1aX9PGzy9EfJGy2tA']));
+    await tryIt(() => simulateTransaction(record, 'AQ==', [A]));
+    const scan = await scanFixture('wallet-many-empty.json');
+    const close = scan.accounts.filter((a) => a.closable).map((a) => a.address).slice(0, 2);
+    const [tx] = planCleanup({ scan, selection: { close }, config: testConfig(), platform: 'web', lifetime: { blockhash: BLOCKHASH, lastValidBlockHeight: 1150n }, now: NOW });
+    const bytes = Buffer.from(tx?.base64 as string, 'base64');
+    bytes.fill(0x41, 1, 65);
+    const genesisFirst: RpcTransport = async (method, params) => (method === 'getGenesisHash' ? GENESIS_HASH.devnet : record(method, params));
+    await tryIt(() => submitSignedTransaction({ rpc: genesisFirst, config: testConfig(), offered: tx?.base64 as string, signed: bytes.toString('base64') }));
+
+    const methods = new Set(calls.map((c) => c.method));
+    expect([...methods].sort()).toEqual(Object.keys(ALLOWED).sort());
+    for (const c of calls) {
+      const rule = ALLOWED[c.method];
+      expect(rule, c.method).toBeDefined();
+      if (rule?.configAt === null) expect(c.params).toEqual([]);
+      const cfg = rule?.configAt == null ? undefined : (c.params[rule.configAt] as Record<string, unknown> | undefined);
+      for (const k of Object.keys(cfg ?? {})) expect(rule?.keys, `${c.method} config key ${k}`).toContain(k);
+      if (c.method === 'getTokenAccountsByOwner') expect([PROGRAM_ID.token, PROGRAM_ID.token2022]).toContain((c.params[1] as { programId: string }).programId);
+    }
   });
 });

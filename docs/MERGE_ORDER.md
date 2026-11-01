@@ -16,8 +16,8 @@ that make a merge live are listed below the merges.
 | 5 | Noventia_app | #6 `feat/cleanup` | `v5/foundation` (retargeted after 4) | 1 | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.6` (local until step 1). |
 | 6 | Noventia_app | agent 1: #9, #11, #12, #13, #14 | `v5/foundation` | | #9, #13 and #14 merged 1 November (agent 1). Passport, wallet sign-in, web app, release 1. |
 | 7 | Noventia_app | #15 `feat/cleanup-in-passport` | `v5/foundation` (retargeted by agent 1) | 1, 5 | Two lines in the passport's Found card: the way into cleanup. Blocked like 5 until the DustBack tag is on GitHub; then agent 1 merges v5/foundation into it, runs the checks and merges. |
-| 8 | poe-engine | agent 3: #25 `core/free-plan` | `main` | agent 3's order | Core contract 1.1.0: `busy_today`, real `Retry-After`, CORS for noventia.app, `notices[]` with look-alike dust, cache `stale`. Then the owner tags `noventia-core-api` v1.1.0. Next from agent 3: core-api 1.2.0 with `/v1/rpc`, the relay cleanup uses on mainnet (web and Android); mainnet cleanup waits for it. |
-| 9 | noventia-app | #4 `agent2/check` | `main` | none to merge | `/check` on the real core, limits in plain words, menu flag, look-alike dust, smoke test, `docs/RELEASE_1_CHECKS.md`. Works on core 1.0.0; the full limits need core 1.1.0 live (8). |
+| 8 | poe-engine | agent 3: #25 `core/free-plan` | `main` | | **Merged 1 November; `noventia-core-api` v1.1.0 tagged.** `busy_today`, real `Retry-After`, CORS for noventia.app, `notices[]` with look-alike dust, cache `stale`. The relay `/v1/rpc` (core-api 1.2.0) for mainnet cleanup is not started: agent 3 has no task for it yet and asks the owner. |
+| 9 | noventia-app | #4 `agent2/check` | `main` | none to merge | `/check` on the real core, limits in plain words, menu flag, look-alike dust, smoke test, `docs/RELEASE_1_CHECKS.md`. Pins core-api v1.1.0; needs core 1.1.0 deployed to show every limit. |
 | 10 | noventia-check-bot | #1 `agent2/check-bot` | `main` | none to merge | The bot's share of the core's credits, the same limits and notices. Deploy after the core is live. |
 | 11 | noventia-app | #6 `agent2/assetlinks` | `main` | none | Owner steps for the Play signing key fingerprint and a format check. |
 
@@ -26,8 +26,7 @@ that make a merge live are listed below the merges.
 * Noventia_app #6 and #15: `@noventia/cleanup-core` `github:noventiaproject-ops/dustback#cleanup-core-v0.1.6`
   (commit `ca84825`). If the repo stays under `denyavarenya-cyber`, the pin moves to that
   address in the same PRs.
-* noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.0.0`; move to `#v1.1.0`
-  once it is tagged (both already read the 1.1.0 fields).
+* noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.1.0`.
 
 ## Owner steps that make it live
 

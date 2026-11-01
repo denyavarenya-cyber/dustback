@@ -12,6 +12,8 @@ export type CleanupErrorCode =
   | 'BURN_REFUSED'
   | 'NOT_SWAPPABLE'
   | 'RPC_ERROR'
+  | 'RATE_LIMITED'
+  | 'ALREADY_SENT'
   | 'BAD_RESPONSE'
   | 'UNSAFE_TRANSACTION'
   | 'FEE_ACCOUNT_INVALID'

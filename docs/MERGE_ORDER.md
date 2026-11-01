@@ -1,40 +1,45 @@
 # Merge order: wallet cleanup, swaps, /check page, /check bot
 
-Updated 1 November 2026, Release 1. One list for every branch and pull request of this
-work, across five repositories. Each PR description points here and repeats its own line.
-Everything is a draft; the owner merges. Done means live for users, so the owner steps
-that make a merge live are listed below the merges.
+Updated 1 November 2026 (evening), Release 1. One list for every branch and pull request
+of this work, across five repositories. Each PR description points here and repeats its
+own line. Done means live for users, so the owner steps that make a merge live are listed
+below the merges. Agent 2 merges its own PRs when every check is green, in this order;
+anything that deploys to production waits for the owner's "release 1 go".
 
 ## Order
 
 | # | Repository | PR / branch | Into | Depends on | Notes |
 |---|---|---|---|---|---|
 | 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.6` | | | **Done 1 November.** The repo stays at `denyavarenya-cyber/dustback`; `noventiaproject-ops` is a collaborator. |
-| 2 | dustback | #1 `agent2/cleanup-core` | `master` | | `packages/cleanup-core` 0.1.6 (retries on 429, never sends twice, RPC through the core relay), docs (mainnet readiness, first mainnet cleanup, Phantom pack, devnet evidence), e2e kits, this file. |
-| 3 | dustback | #2 `agent2/site` | `master` | | **The page is live since 1 November** (Worker version `37e6ecbc`, hotfix `82b7db20` first). Merging makes `master` what is live. Independent of 2. |
+| 2 | dustback | #1 `agent2/cleanup-core` | `master` | | **Merged 1 November** (`08ca1c5`). `packages/cleanup-core` 0.1.6 (retries on 429, never sends twice, RPC through the core relay), docs, e2e kits, this file. |
+| 2a | dustback | #3 `agent2/cleanup-core-0.1.7` | `master` | 2 | `packages/cleanup-core` 0.1.7: passes the Noventia app's non-strict root typecheck (`answer.busy === false`); `npm run check` also runs the app's settings. Tag `cleanup-core-v0.1.7` (`145405b`) pushed 1 November. Docs: relay Origin check, staging results. |
+| 3 | dustback | #2 `agent2/site` | `master` | | **Merged 1 November** (`f68929b`). The page is live since 1 November (Worker version `37e6ecbc`, hotfix `82b7db20` first). |
 | 4 | Noventia_app | #10 `feat/plex-fonts` | `v5/foundation` | | **Merged 1 November.** IBM Plex. |
-| 5 | Noventia_app | #6 `feat/cleanup` | `v5/foundation` (retargeted after 4) | 1 | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.6` (relay contract core-api 1.2.0; the tag is pushed in step 1). |
+| 5 | Noventia_app | #6 `feat/cleanup` | `v5/foundation` | 2a | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.7`. Agent 1 runs the full gate and merges. |
 | 6 | Noventia_app | agent 1: #9, #11, #12, #13, #14 | `v5/foundation` | | #9, #13 and #14 merged 1 November (agent 1). Passport, wallet sign-in, web app, release 1. |
-| 7 | Noventia_app | #15 `feat/cleanup-in-passport` | `v5/foundation` (retargeted by agent 1) | 1, 5 | Two lines in the passport's Found card: the way into cleanup. Blocked like 5 until the DustBack tag is on GitHub; then agent 1 merges v5/foundation into it, runs the checks and merges. |
-| 8 | poe-engine | agent 3: #25 `core/free-plan` | `main` | | **Merged 1 November; `noventia-core-api` v1.1.0 tagged.** `busy_today`, real `Retry-After`, CORS for noventia.app, `notices[]` with look-alike dust, cache `stale`. Then core-api 1.2.0 (tagged): the relay `/v1/rpc` for mainnet cleanup, poe-engine draft #26; live after the owner merges it and deploys the core. |
-| 9 | noventia-app | #4 `agent2/check` | `main` | none to merge | `/check` on the real core, limits in plain words, menu flag, look-alike dust, smoke test, `docs/RELEASE_1_CHECKS.md`. Pins core-api v1.1.0; needs core 1.1.0 deployed to show every limit. |
-| 10 | noventia-check-bot | #1 `agent2/check-bot` | `main` | none to merge | The bot's share of the core's credits, the same limits and notices. Deploy after the core is live. |
-| 11 | noventia-app | #6 `agent2/assetlinks` | `main` | none | Owner steps for the Play signing key fingerprint and a format check. |
+| 7 | Noventia_app | #15 `feat/cleanup-in-passport` | `v5/foundation` | 5 | Two lines in the passport's Found card: the way into cleanup. Pins `cleanup-core-v0.1.7`. Agent 1 merges `v5/foundation` into it, runs the gate and merges. |
+| 8 | poe-engine | agent 3: #25, #26, #27 | `main` | | **Merged 1 November.** #25 core 1.1.0 (`busy_today`, real `Retry-After`, CORS, look-alike notices, `stale`). #26 the relay `/v1/rpc` (core-api 1.2.0). #27 refuses a foreign Origin with 403 `origin_not_allowed` before any credit (core-api 1.2.1, tag waiting for the owner's push). On staging (build `8c56393`); production core is an owner step. |
+| 9 | noventia-app | #4 `agent2/check` | `main` | none to merge | `/check` on the real core. `main` deploys to Vercel Production: **waits for "release 1 go"**. Smoke test against staging: all PASS (1 November, builds `25df21c` and `8c56393`). |
+| 10 | noventia-check-bot | #1 `agent2/check-bot` | `main` | none to merge | **Merged 1 November** (`e1e7009`). No deployment until the owner creates the Railway service (`docs/DEPLOY.md`). |
+| 11 | noventia-app | #6 `agent2/assetlinks` | `main` | none | Owner steps for the Play signing key fingerprint and a format check. **Waits for "release 1 go"** (same Vercel Production deploy). |
 
 ## Pinned versions
 
-* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:denyavarenya-cyber/dustback#cleanup-core-v0.1.6`
-  (commit `64280ca`); a fresh clone passes a plain `npm ci`.
-* noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.1.0`.
+* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:denyavarenya-cyber/dustback#cleanup-core-v0.1.7`
+  (commit `145405b`); the tag is readable over plain https.
+* noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.1.0`. The cleanup module
+  needs nothing from 1.2.1: any refusal code other than `upstream_failed` already means
+  "nothing was forwarded".
 
 ## Owner steps that make it live
 
 | When | Step | Where it is written |
 |---|---|---|
-| Any time | `npx wrangler login`, then "wrangler logged in": assetlinks hotfix, then the dustback.app page | `dustback-hotfix/OWNER_STEPS.md`, `docs/SITE_DEPLOY.md` (branch `agent2/site`) |
-| Any time | Add `noventiaproject-ops` as collaborator, then "collaborator added" | step 1 above |
-| Core live (8) | Smoke test, `NEXT_PUBLIC_CORE_API_URL`, then `NEXT_PUBLIC_CHECK_IN_MENU=1` on Vercel; the bot on Railway | noventia-app `docs/RELEASE_1_CHECKS.md`, noventia-check-bot `docs/DEPLOY.md` |
+| Done 1 November | "wrangler logged in" and "collaborator added" | |
+| Release 1 | "release 1 go"; then smoke test, `NEXT_PUBLIC_CORE_API_URL` (production core), then `NEXT_PUBLIC_CHECK_IN_MENU=1` on Vercel | noventia-app `docs/RELEASE_1_CHECKS.md` |
+| Release 1 | The bot: BotFather token and the Railway service | noventia-check-bot `docs/DEPLOY.md` |
 | After 5 and 7 | `EXPO_PUBLIC_FEATURE_CLEANUP=1` on the app builds (devnet until the next row) | Noventia_app `src/features/cleanup/README.md` |
-| When ready for mainnet | Fee wallet in Phantom, written yes, the five variables, one cleanup of own dust | `docs/FIRST_MAINNET_CLEANUP.md` |
-| A week after the dustback.app page is live | Phantom review form | `docs/PHANTOM_REVIEW.md` |
+| When ready for mainnet | Fee wallet in Phantom, written yes, the five variables, one cleanup of own dust; the production core must refuse a foreign Origin (#27) | `docs/FIRST_MAINNET_CLEANUP.md` |
+| From 8 November | Phantom review form | `docs/PHANTOM_REVIEW.md` |
+| If wanted | `www.dustback.app` as a domain of the Worker (DNS) | `docs/PHANTOM_REVIEW.md` |
 | Any time | Play app signing key fingerprint | noventia-app `docs/ASSETLINKS.md` (11) |

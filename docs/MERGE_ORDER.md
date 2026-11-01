@@ -9,22 +9,22 @@ that make a merge live are listed below the merges.
 
 | # | Repository | PR / branch | Into | Depends on | Notes |
 |---|---|---|---|---|---|
-| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.5` | | owner: "collaborator added" | Not on GitHub yet. Until the tags are there, `npm ci` fails on Noventia_app #6 and #15. |
-| 2 | dustback | `agent2/cleanup-core` | `master` | 1 | `packages/cleanup-core` 0.1.5 (retries on 429, never sends twice), docs (mainnet readiness, first mainnet cleanup, Phantom pack, devnet evidence), e2e kits, this file. |
+| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.6` | | owner: "collaborator added" | Not on GitHub yet. Until the tags are there, `npm ci` fails on Noventia_app #6 and #15. |
+| 2 | dustback | `agent2/cleanup-core` | `master` | 1 | `packages/cleanup-core` 0.1.6 (retries on 429, never sends twice, RPC through the core relay), docs (mainnet readiness, first mainnet cleanup, Phantom pack, devnet evidence), e2e kits, this file. |
 | 3 | dustback | `agent2/site` | `master` | 1; the page deployed (owner: "wrangler logged in") | Merge after the deploy, so `master` is what is live. Independent of 2. |
 | 4 | Noventia_app | #10 `feat/plex-fonts` | `v5/foundation` | | **Merged 1 November.** IBM Plex. |
-| 5 | Noventia_app | #6 `feat/cleanup` | `v5/foundation` (retargeted after 4) | 1 | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.5`. |
+| 5 | Noventia_app | #6 `feat/cleanup` | `v5/foundation` (retargeted after 4) | 1 | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.6` (local until step 1). |
 | 6 | Noventia_app | agent 1: #9, #11, #12, #13, #14 | `v5/foundation` | | #9, #13 and #14 merged 1 November (agent 1). Passport, wallet sign-in, web app, release 1. |
 | 7 | Noventia_app | #15 `feat/cleanup-in-passport` | `v5/foundation` (retargeted by agent 1) | 1, 5 | Two lines in the passport's Found card: the way into cleanup. Blocked like 5 until the DustBack tag is on GitHub; then agent 1 merges v5/foundation into it, runs the checks and merges. |
-| 8 | poe-engine | agent 3: #25 `core/free-plan` | `main` | agent 3's order | Core contract 1.1.0: `busy_today`, real `Retry-After`, CORS for noventia.app, `notices[]` with look-alike dust, cache `stale`. Then the owner tags `noventia-core-api` v1.1.0. |
+| 8 | poe-engine | agent 3: #25 `core/free-plan` | `main` | agent 3's order | Core contract 1.1.0: `busy_today`, real `Retry-After`, CORS for noventia.app, `notices[]` with look-alike dust, cache `stale`. Then the owner tags `noventia-core-api` v1.1.0. Next from agent 3: core-api 1.2.0 with `/v1/rpc`, the relay cleanup uses on mainnet (web and Android); mainnet cleanup waits for it. |
 | 9 | noventia-app | #4 `agent2/check` | `main` | none to merge | `/check` on the real core, limits in plain words, menu flag, look-alike dust, smoke test, `docs/RELEASE_1_CHECKS.md`. Works on core 1.0.0; the full limits need core 1.1.0 live (8). |
 | 10 | noventia-check-bot | #1 `agent2/check-bot` | `main` | none to merge | The bot's share of the core's credits, the same limits and notices. Deploy after the core is live. |
 | 11 | noventia-app | #6 `agent2/assetlinks` | `main` | none | Owner steps for the Play signing key fingerprint and a format check. |
 
 ## Pinned versions
 
-* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:noventiaproject-ops/dustback#cleanup-core-v0.1.5`
-  (commit `06108d2`). If the repo stays under `denyavarenya-cyber`, the pin moves to that
+* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:noventiaproject-ops/dustback#cleanup-core-v0.1.6`
+  (commit `ca84825`). If the repo stays under `denyavarenya-cyber`, the pin moves to that
   address in the same PRs.
 * noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.0.0`; move to `#v1.1.0`
   once it is tagged (both already read the 1.1.0 fields).

@@ -21,4 +21,5 @@ One line per idea outside the current task. Not discussed or done until the owne
 - The select screen shows each account's mint and the confirm screen its address; label both, or show both on both screens.
 - Raw `fontWeight` in the app's screens (about 90 places) and the `v5.type` ramp still draw the system font; moving them to `typography.family` is the theme owner's sweep.
 - Devnet SOL for tests: a small funded devnet wallet kept by the owner, or a paid RPC plan with a devnet faucet, so end to end runs do not wait on the web faucet.
-- cleanup-core `createHttpTransport` gives up on HTTP 429; retry scan and status reads with a growing pause, and use a paid RPC for mainnet (the public devnet RPC answered 429 during the first devnet run).
+- The cleanup RPC through the core (a small relay with an allowlist of the 7 methods cleanup uses and per-IP limits), so no RPC key ships inside the app (agent 3; docs/MAINNET_READINESS.md).
+- Balance cleanup batches (24 accounts plan as 23 + 1 today; 12 + 12 costs the same two signatures but leaves room if an account grows a Token-2022 extension).

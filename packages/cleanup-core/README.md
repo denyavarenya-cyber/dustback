@@ -110,7 +110,7 @@ Errors are `CleanupError` with a `code`: `FEATURE_DISABLED`, `MAINNET_BLOCKED`,
 
 ```
 npm install
-npm run check      # typecheck, lint, tests
+npm run check      # typecheck (strict, and the Noventia app's non-strict settings), lint, tests
 ```
 
 Tests run on fixtures in `test/fixtures/` (synthetic data in the exact RPC and

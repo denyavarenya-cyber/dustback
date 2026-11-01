@@ -9,9 +9,9 @@ that make a merge live are listed below the merges.
 
 | # | Repository | PR / branch | Into | Depends on | Notes |
 |---|---|---|---|---|---|
-| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.6` | | owner: "collaborator added" | Not on GitHub yet. Until the tags are there, `npm ci` fails on Noventia_app #6 and #15. |
-| 2 | dustback | `agent2/cleanup-core` | `master` | 1 | `packages/cleanup-core` 0.1.6 (retries on 429, never sends twice, RPC through the core relay), docs (mainnet readiness, first mainnet cleanup, Phantom pack, devnet evidence), e2e kits, this file. |
-| 3 | dustback | `agent2/site` | `master` | 1; the page deployed (owner: "wrangler logged in") | Merge after the deploy, so `master` is what is live. Independent of 2. |
+| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.6` | | | **Done 1 November.** The repo stays at `denyavarenya-cyber/dustback`; `noventiaproject-ops` is a collaborator. |
+| 2 | dustback | #1 `agent2/cleanup-core` | `master` | | `packages/cleanup-core` 0.1.6 (retries on 429, never sends twice, RPC through the core relay), docs (mainnet readiness, first mainnet cleanup, Phantom pack, devnet evidence), e2e kits, this file. |
+| 3 | dustback | #2 `agent2/site` | `master` | | **The page is live since 1 November** (Worker version `37e6ecbc`, hotfix `82b7db20` first). Merging makes `master` what is live. Independent of 2. |
 | 4 | Noventia_app | #10 `feat/plex-fonts` | `v5/foundation` | | **Merged 1 November.** IBM Plex. |
 | 5 | Noventia_app | #6 `feat/cleanup` | `v5/foundation` (retargeted after 4) | 1 | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.6` (relay contract core-api 1.2.0; the tag is pushed in step 1). |
 | 6 | Noventia_app | agent 1: #9, #11, #12, #13, #14 | `v5/foundation` | | #9, #13 and #14 merged 1 November (agent 1). Passport, wallet sign-in, web app, release 1. |
@@ -23,9 +23,8 @@ that make a merge live are listed below the merges.
 
 ## Pinned versions
 
-* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:noventiaproject-ops/dustback#cleanup-core-v0.1.6`
-  (commit `64280ca`). If the repo stays under `denyavarenya-cyber`, the pin moves to that
-  address in the same PRs.
+* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:denyavarenya-cyber/dustback#cleanup-core-v0.1.6`
+  (commit `64280ca`); a fresh clone passes a plain `npm ci`.
 * noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.1.0`.
 
 ## Owner steps that make it live

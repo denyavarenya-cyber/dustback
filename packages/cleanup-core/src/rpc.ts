@@ -9,16 +9,53 @@ import { CleanupError } from './errors';
  */
 export type RpcTransport = (method: string, params: readonly unknown[]) => Promise<unknown>;
 
+export interface RetryOptions {
+  /** Tries in all, the first one included. */
+  attempts?: number;
+  /** Backoff before try n is a random time up to min(maxDelayMs, baseDelayMs * 2^(n-1)). */
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+  /** For tests. */
+  random?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+}
+
 export interface HttpTransportOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   headers?: Record<string, string>;
+  retry?: RetryOptions;
 }
 
+export const RETRY_DEFAULTS = { attempts: 5, baseDelayMs: 500, maxDelayMs: 8_000 } as const;
+
+/** JSON-RPC "Too many requests" (Helius and Solana Labs nodes). */
+const RPC_TOO_MANY = -32005;
+
+function retryAfterMs(res: Response): number | null {
+  const v = Number(res.headers.get('retry-after'));
+  return Number.isFinite(v) && v > 0 ? v * 1000 : null;
+}
+
+/**
+ * JSON-RPC over HTTP. A "too many requests" answer (HTTP 429 or JSON-RPC
+ * -32005) means the node refused the call before doing anything, so it is
+ * tried again after a backoff with full jitter, honouring Retry-After, up to
+ * `retry.attempts` tries; then it stops with RATE_LIMITED and a plain message.
+ * Nothing else is retried here: a timeout or a 5xx on sendTransaction may mean
+ * the node already took the transaction, so it is never sent again blindly
+ * (submitSignedTransaction and waitForOutcomes handle that case).
+ */
 export function createHttpTransport(url: string, options: HttpTransportOptions = {}): RpcTransport {
   const { fetchImpl = fetch, timeoutMs = 20_000, headers = {} } = options;
+  const attempts = Math.max(1, Math.floor(options.retry?.attempts ?? RETRY_DEFAULTS.attempts));
+  const base = options.retry?.baseDelayMs ?? RETRY_DEFAULTS.baseDelayMs;
+  const cap = options.retry?.maxDelayMs ?? RETRY_DEFAULTS.maxDelayMs;
+  const random = options.retry?.random ?? Math.random;
+  const sleep = options.retry?.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   let id = 0;
-  return async (method, params) => {
+
+  async function once(method: string, params: readonly unknown[]): Promise<{ busy: true; waitMs: number | null } | { busy: false; result: unknown }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -28,17 +65,37 @@ export function createHttpTransport(url: string, options: HttpTransportOptions =
         body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params }),
         signal: controller.signal,
       });
+      if (res.status === 429) return { busy: true, waitMs: retryAfterMs(res) };
       if (!res.ok) throw new CleanupError('RPC_ERROR', `RPC answered HTTP ${res.status} to ${method}`);
       const body = (await res.json()) as { result?: unknown; error?: { code?: unknown; message?: unknown } };
       if (body.error !== undefined) {
+        if (body.error.code === RPC_TOO_MANY) return { busy: true, waitMs: retryAfterMs(res) };
         throw new CleanupError('RPC_ERROR', `RPC error on ${method}: ${String(body.error.message)}`, body.error);
       }
-      return body.result;
+      return { busy: false, result: body.result };
     } catch (e) {
       if (e instanceof CleanupError) throw e;
       throw new CleanupError('RPC_ERROR', `RPC request ${method} failed`, e);
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  return async (method, params) => {
+    for (let n = 1; ; n++) {
+      const answer = await once(method, params);
+      if (!answer.busy) return answer.result;
+      if (n >= attempts) {
+        throw new CleanupError(
+          'RATE_LIMITED',
+          method === 'sendTransaction'
+            ? 'The network is busy and the transaction was not sent. Nothing left your wallet. Try again in a minute.'
+            : 'The network is busy right now. Nothing was sent. Try again in a minute.',
+          { method, attempts: n },
+        );
+      }
+      const backoff = Math.min(cap, base * 2 ** (n - 1)) * random();
+      await sleep(Math.min(cap, Math.max(backoff, answer.waitMs ?? 0)));
     }
   };
 }

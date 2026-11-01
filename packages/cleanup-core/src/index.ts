@@ -30,6 +30,8 @@ export {
   createHttpTransport,
   type HttpTransportOptions,
   type LatestBlockhash,
+  RETRY_DEFAULTS,
+  type RetryOptions,
   type RpcTransport,
 } from './rpc';
 export {
@@ -86,7 +88,7 @@ export {
   unavailableReview,
   type WarningLevel,
 } from './tokenCheck';
-export { submitSignedTransaction } from './submit';
+export { submitSignedTransaction, wasSent } from './submit';
 export { explorerAddressUrl, explorerTxUrl, isSignature, type Outcome, waitForOutcomes } from './outcomes';
 export { formatSol, formatTokenAmount, shorten } from './format';
 export { JUPITER_AGGREGATOR_PROGRAM, WSOL_MINT } from './constants';

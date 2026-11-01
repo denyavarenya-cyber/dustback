@@ -117,7 +117,8 @@ describe('submitSignedTransaction', () => {
     const unsigned = await offered();
     const rpc = fakeRpc({ ...baseHandlers, getGenesisHash: () => GENESIS_HASH['mainnet-beta'], sendTransaction: () => 'x' });
     expect(
-      await codeOf(() => submitSignedTransaction({ rpc: rpc.transport, config: testConfig(), offered: unsigned, signed: signWithFiller(unsigned) })),
+      // Its own filler: the one above was already sent, and a sent transaction is never sent again.
+      await codeOf(() => submitSignedTransaction({ rpc: rpc.transport, config: testConfig(), offered: unsigned, signed: signWithFiller(unsigned, 0x12) })),
     ).toBe('CLUSTER_MISMATCH');
     expect(rpc.calls.some((c) => c.method === 'sendTransaction')).toBe(false);
   });

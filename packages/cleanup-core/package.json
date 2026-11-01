@@ -1,6 +1,6 @@
 {
   "name": "@noventia/cleanup-core",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Wallet cleanup and swap planning for Noventia: scan, classify, build unsigned transactions, simulate. No keys, no signing, no UI.",
   "license": "MIT",
   "private": true,
@@ -21,7 +21,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.loose.json && tsc -p test/tsconfig.json",
     "lint": "eslint .",
     "check": "npm run typecheck && npm run lint && npm run test"
   },

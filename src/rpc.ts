@@ -37,6 +37,52 @@ function retryAfterMs(res: Response): number | null {
   return Number.isFinite(v) && v > 0 ? v * 1000 : null;
 }
 
+/** The core's error body: `{ "error": { "code", "message" } }`; null for anything else. */
+async function coreErrorCode(res: Response): Promise<string | null> {
+  try {
+    const body = (await res.json()) as { error?: { code?: unknown } };
+    const code = body?.error?.code;
+    return typeof code === 'string' && /^[a-z_]{1,40}$/.test(code) ? code : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A non-200 answer. The core's relay says why in its error body: `busy_today`
+ * (cleanup's share of today's reads is used) stops with a plain message, and any
+ * 4xx with a code means the relay refused before forwarding (`details.refused`),
+ * so nothing reached the network. A 5xx is unknown: it may have been forwarded.
+ */
+async function httpError(res: Response, method: string): Promise<CleanupError> {
+  const code = await coreErrorCode(res);
+  if (code === 'busy_today') {
+    return new CleanupError(
+      'BUSY_TODAY',
+      method === 'sendTransaction'
+        ? "Cleanup has reached today's limit, so the transaction was not sent. Nothing left your wallet. Try again after 00:00 UTC."
+        : "Cleanup has reached today's limit. Nothing was sent. Try again after 00:00 UTC.",
+      { method, refused: true },
+    );
+  }
+  const refused = code !== null && res.status < 500;
+  return new CleanupError('RPC_ERROR', `RPC answered HTTP ${res.status} to ${method}${code ? ` (${code})` : ''}`, refused ? { method, refused, code } : undefined);
+}
+
+/**
+ * The cleanup RPC through the Noventia core: `{core}/v1/rpc` relays an allowlist
+ * of methods to the chain with its own limits and credit share, so no RPC key
+ * ships in any app. Same retries as createHttpTransport.
+ */
+export function createCoreRpcTransport(coreUrl: string, options: HttpTransportOptions = {}): RpcTransport {
+  const base = coreUrl.trim().replace(/\/+$/, '');
+  const local = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base);
+  if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(base) && !local) {
+    throw new CleanupError('INVALID_CONFIG', 'the core address must be https, without a path');
+  }
+  return createHttpTransport(`${base}/v1/rpc`, options);
+}
+
 /**
  * JSON-RPC over HTTP. A "too many requests" answer (HTTP 429 or JSON-RPC
  * -32005) means the node refused the call before doing anything, so it is
@@ -66,7 +112,7 @@ export function createHttpTransport(url: string, options: HttpTransportOptions =
         signal: controller.signal,
       });
       if (res.status === 429) return { busy: true, waitMs: retryAfterMs(res) };
-      if (!res.ok) throw new CleanupError('RPC_ERROR', `RPC answered HTTP ${res.status} to ${method}`);
+      if (!res.ok) throw await httpError(res, method);
       const body = (await res.json()) as { result?: unknown; error?: { code?: unknown; message?: unknown } };
       if (body.error !== undefined) {
         if (body.error.code === RPC_TOO_MANY) return { busy: true, waitMs: retryAfterMs(res) };

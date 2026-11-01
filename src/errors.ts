@@ -13,6 +13,7 @@ export type CleanupErrorCode =
   | 'NOT_SWAPPABLE'
   | 'RPC_ERROR'
   | 'RATE_LIMITED'
+  | 'BUSY_TODAY'
   | 'ALREADY_SENT'
   | 'BAD_RESPONSE'
   | 'UNSAFE_TRANSACTION'

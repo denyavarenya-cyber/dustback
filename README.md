@@ -30,6 +30,7 @@ explorerTxUrl       link to each transaction
 |---|---|
 | `createConfig(overrides)` | Config with defaults and validation. Throws `INVALID_CONFIG`. |
 | `isFeatureEnabled(config, platform, feature)` | `false` on iOS always; otherwise from config. |
+| `createCoreRpcTransport(coreUrl, { retry })` | The cleanup RPC through the Noventia core: JSON-RPC to `{core}/v1/rpc`, which relays an allowlist of methods with its own limits and credit share, so no RPC key ships in an app. `busy_today` (503) stops with `BUSY_TODAY` and a plain message, no retry; a 4xx with the core's error code means the relay refused before forwarding (nothing reached the chain); a 5xx is unknown. Same retries as below. |
 | `createHttpTransport(url, { retry })` | JSON-RPC over `fetch` with a timeout. "Too many requests" (HTTP 429 or JSON-RPC -32005) is refused by the node before it does anything, so it is tried again after a doubling backoff with full jitter (0.5 s, capped at 8 s, Retry-After honoured up to the cap), 5 tries in all, then `RATE_LIMITED` with a plain message. Nothing else is retried. Tests pass recorded responses instead. |
 | `createJupiterPriceSource({ url, apiKey })` | Jupiter Price API v3, 50 mints per request, throttled. |
 | `scanWallet({ rpc, owner, config, prices })` | Checks the RPC serves the configured cluster, reads both token programs, returns `ScanResult`. |
@@ -49,7 +50,7 @@ explorerTxUrl       link to each transaction
 Errors are `CleanupError` with a `code`: `FEATURE_DISABLED`, `MAINNET_BLOCKED`,
 `CLUSTER_MISMATCH`, `INVALID_CONFIG`, `INVALID_ADDRESS`, `STALE_SCAN`,
 `NOT_IN_SCAN`, `NOT_CLOSABLE`, `PROTECTED`, `BURN_REFUSED`, `NOT_SWAPPABLE`,
-`FEE_WALLET_NOT_SET`, `RPC_ERROR`, `RATE_LIMITED`, `ALREADY_SENT`, `BAD_RESPONSE`,
+`FEE_WALLET_NOT_SET`, `RPC_ERROR`, `RATE_LIMITED`, `BUSY_TODAY`, `ALREADY_SENT`, `BAD_RESPONSE`,
 `UNSAFE_TRANSACTION`, `FEE_ACCOUNT_INVALID`, `TOO_LARGE`, `SIMULATION_FAILED`.
 
 ### Categories

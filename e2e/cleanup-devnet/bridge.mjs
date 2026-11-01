@@ -166,8 +166,11 @@ async function makeAccount(kind, program = TOKEN) {
 // ─── Funding ───────────────────────────────────────────────────────────────
 // The RPC faucet on devnet is closed (HTTP 410 since 2026). Try it once, then
 // wait for someone to send devnet SOL to the owner address from
-// https://faucet.solana.com (captcha or GitHub sign-in), at most 60 minutes.
+// https://faucet.solana.com (captcha or GitHub sign-in). The wait is
+// FUND_WAIT_MIN minutes (default 60); the address dies with this process, so
+// set it long enough for the person who funds it.
 const NEEDED = 100_000_000n; // 0.1 SOL covers the setup about three times
+const WAIT_MIN = Number(process.env.FUND_WAIT_MIN) > 0 ? Number(process.env.FUND_WAIT_MIN) : 60;
 async function fund() {
   try {
     const sig = await rpc.requestAirdrop(owner.address, 1_000_000_000n, { commitment: 'confirmed' }).send();
@@ -177,9 +180,16 @@ async function fund() {
   } catch (e) {
     log('airdrop refused:', e?.message ?? e);
   }
-  log(`FUND ${owner.address} with at least 0.1 devnet SOL at https://faucet.solana.com`);
-  for (let i = 0; i < 360; i++) {
-    const { value } = await rpc.getBalance(owner.address, { commitment: 'confirmed' }).send();
+  log(`FUND ${owner.address} with at least 0.1 devnet SOL at https://faucet.solana.com (waiting ${WAIT_MIN} minutes)`);
+  const until = Date.now() + WAIT_MIN * 60_000;
+  while (Date.now() < until) {
+    let value = 0n;
+    try {
+      ({ value } = await rpc.getBalance(owner.address, { commitment: 'confirmed' }).send());
+    } catch {
+      // A failed poll is not fatal: the address must stay alive until funded.
+      log('balance check failed, will retry');
+    }
     if (value >= NEEDED) {
       const sigs = await rpc.getSignaturesForAddress(owner.address, { limit: 5 }).send();
       setup.push({ what: `funded with ${value} lamports`, signature: sigs[0]?.signature ?? null });
@@ -188,7 +198,7 @@ async function fund() {
     }
     await sleep(10_000);
   }
-  throw new Error('not funded within 60 minutes');
+  throw new Error(`not funded within ${WAIT_MIN} minutes`);
 }
 
 await fund();

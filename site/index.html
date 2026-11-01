@@ -3,130 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DustBack recover unused wallet value</title>
-  <meta name="description" content="DustBack closes empty token accounts and swaps dust to SOL. Your wallet. Your value. Back where it belongs.">
-  <link rel="icon" href="icon.png">
-  <link rel="stylesheet" href="style.css">
+  <title>DustBack is now part of Noventia</title>
+  <meta name="description" content="DustBack is now part of Noventia. Wallet cleanup now lives in Noventia.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0A1214">
+  <link rel="icon" href="/icon.png">
+  <link rel="preload" href="/fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <main>
-    <div class="brand">
-      <img src="icon.png" alt="DustBack">
-      <span>DustBack</span>
-    </div>
+  <div class="page">
+    <header class="top">
+      <span class="mark">Noventia</span>
+    </header>
 
-    <h1>Your wallet. Your value.<br>Back where it belongs.</h1>
+    <main class="grid">
+      <h1>DustBack is now part of Noventia</h1>
 
-    <p>
-      Every Solana wallet slowly collects leftovers: empty token accounts that
-      still hold a small SOL deposit, and dust balances too small to trade by
-      hand. DustBack scans any wallet, shows exactly what can be recovered,
-      closes the empty accounts and swaps the dust to SOL — in one reviewed,
-      signed sweep.
-    </p>
+      <div class="intro">
+        <p class="lead">DustBack was an app that closed empty Solana token accounts and gave the rent back to their owners. Wallet cleanup now lives in Noventia.</p>
+        <a class="button" href="https://noventia.app">Open noventia.app</a>
+      </div>
 
-    <ul class="principles">
-      <li>Scan without connecting — a public address is enough.</li>
-      <li>Every account, swap and fee is shown before you sign.</li>
-      <li>The fee is only charged on value actually delivered.</li>
-      <li>No approvals, no delegates, no permissions — ever.</li>
-      <li>Open source, so you can check all of the above.</li>
-    </ul>
+      <section class="addresses" aria-labelledby="official">
+        <h2 id="official">Official addresses</h2>
+        <dl>
+          <div><dt>App</dt><dd><a href="https://noventia.app">noventia.app</a></dd></div>
+          <div><dt>Protocol</dt><dd><a href="https://noventia.xyz">noventia.xyz</a></dd></div>
+          <div><dt>X</dt><dd><a href="https://x.com/NoventiaHq">@NoventiaHq</a></dd></div>
+          <div><dt>Discord</dt><dd><a href="https://discord.com/invite/5HaTQHW2Es">discord.com/invite/5HaTQHW2Es</a></dd></div>
+          <div><dt>Email</dt><dd><a href="mailto:support@noventia.app">support@noventia.app</a></dd></div>
+        </dl>
+      </section>
+    </main>
 
-    <div class="buttons">
-      <button class="btn" type="button" id="tester-toggle" aria-expanded="false" aria-controls="tester-form">Become a tester</button>
-      <a class="btn soon" href="#" aria-disabled="true">Google Play — coming soon</a>
-      <a class="btn soon" href="#" aria-disabled="true">Solana dApp Store — coming soon</a>
-    </div>
-
-    <section id="tester-form" class="card" hidden>
-      <h2>Android closed testing</h2>
-      <p class="muted">
-        Leave the Google account email you use on Google Play and we will add
-        it to the closed testing track. You get an opt-in link by email.
-      </p>
-      <form id="tester" method="post" action="https://script.google.com/macros/s/AKfycbxc5i9D_9Yyxx0YrBjGPBwXm2U2Lj3GzfqnEZH_reF77O79W-bhOAYSsh6kuakM3e8t/exec" novalidate>
-        <label for="email">Google account email <span class="req">required</span></label>
-        <input id="email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="you@gmail.com">
-
-        <label for="handle">Discord or X handle <span class="muted">optional</span></label>
-        <input id="handle" name="handle" type="text" autocomplete="off" placeholder="@handle">
-
-        <div class="hp" aria-hidden="true">
-          <label for="website">Website</label>
-          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
-        </div>
-
-        <p class="error" id="tester-error" hidden>Please enter a valid email address.</p>
-        <button class="btn" type="submit" id="tester-submit">Send</button>
-      </form>
-      <p class="thanks" id="tester-thanks" hidden>
-        Thanks — you are on the list. Watch your inbox for the Play opt-in link.
-      </p>
-    </section>
-
-    <p class="muted">
-      Source code: <a href="https://github.com/denyavarenya-cyber/dustback">github.com/denyavarenya-cyber/dustback</a>
-      &nbsp;·&nbsp; <a href="privacy.html">Privacy policy</a>
-    </p>
-  </main>
-
- <footer>
-  DustBack · <a href="mailto:hello@dustback.app">hello@dustback.app</a> ·
-  <a href="https://x.com/dustbackapp" aria-label="DustBack on X" class="x-link">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -2px;">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-    </svg>
-  </a>
-</footer>
-<script>
-  (function () {
-    var toggle = document.getElementById('tester-toggle');
-    var section = document.getElementById('tester-form');
-    var form = document.getElementById('tester');
-    var email = document.getElementById('email');
-    var error = document.getElementById('tester-error');
-    var thanks = document.getElementById('tester-thanks');
-    var submit = document.getElementById('tester-submit');
-
-    toggle.addEventListener('click', function () {
-      var open = section.hidden;
-      section.hidden = !open;
-      toggle.setAttribute('aria-expanded', String(open));
-      if (open) email.focus();
-    });
-
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
-      error.hidden = true;
-      if (!email.checkValidity()) {
-        error.hidden = false;
-        email.focus();
-        return;
-      }
-      if (form.website.value) {
-        // honeypot filled: pretend success, send nothing
-        form.hidden = true;
-        thanks.hidden = false;
-        return;
-      }
-      submit.disabled = true;
-      submit.textContent = 'Sending…';
-      // opaque cross-origin POST to the Apps Script web app; the response
-      // cannot be read, a network failure is the only detectable error
-      fetch(form.action, { method: 'POST', mode: 'no-cors', body: new FormData(form) })
-        .then(function () {
-          form.hidden = true;
-          thanks.hidden = false;
-        })
-        .catch(function () {
-          submit.disabled = false;
-          submit.textContent = 'Send';
-          error.textContent = 'Could not send. Check your connection and try again.';
-          error.hidden = false;
-        });
-    });
-  })();
-</script>
+    <footer class="foot">
+      <p>Noventia never asks for your seed phrase or private key.</p>
+    </footer>
+  </div>
 </body>
 </html>

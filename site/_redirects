@@ -1,0 +1,5 @@
+# Old paths that people or store listings may link to. Each form is listed,
+# so no old link takes two hops.
+/privacy        https://noventia.app/privacy 301
+/privacy/       https://noventia.app/privacy 301
+/privacy.html   https://noventia.app/privacy 301

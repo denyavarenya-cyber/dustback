@@ -1,194 +1,178 @@
-:root {
-  --bg: #f4f7f6;
-  --surface: #ffffff;
-  --accent: #0f7a80;
-  --text: #14201d;
-  --secondary: #64726e;
-  --border: #dce5e2;
+/* Noventia dark style. Fonts are served from this site; nothing loads from
+   another origin. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
 }
 
-* {
-  box-sizing: border-box;
+:root {
+  --bg: #0A1214;
+  --text: #EEF5F2;
+  --muted: #9DB3AD;
+  --accent: #6CCCBF;
+  --line: #1F2D2E;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  /* One spacing scale for the whole page, growing with the viewport. */
+  --gutter: clamp(24px, 5vw, 72px);
+  --gap: clamp(48px, 8vw, 128px);
 }
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { background: var(--bg); }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, "Segoe UI", Roboto, Inter, Helvetica, Arial,
-    sans-serif;
-  line-height: 1.6;
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-main {
-  max-width: 660px;
+.page {
+  min-height: 100vh;
+  min-height: 100svh;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 48px 20px 32px;
-}
-
-.brand {
+  padding: 0 var(--gutter);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
 }
 
-.brand img {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+/* Header */
+.top {
+  padding: clamp(28px, 4vw, 48px) 0;
+}
+.mark {
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  color: var(--text);
 }
 
-.brand span {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--accent);
+/* Main grid. Phones: one column. From 960 px: the headline spans the full
+   width, then the text and the addresses sit side by side, tops aligned. */
+.grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--gap);
+  row-gap: clamp(28px, 4vw, 56px);
+  align-content: center;
+  align-items: start;
+  padding: clamp(24px, 4vw, 56px) 0;
+}
+.grid > h1 { grid-column: 1 / -1; }
+.grid > .addresses { margin-top: clamp(20px, 4vw, 40px); }
+@media (min-width: 960px) {
+  .grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .grid > .addresses { margin-top: 0; }
 }
 
 h1 {
-  font-size: 34px;
-  line-height: 1.25;
-  margin: 36px 0 12px;
-}
-
-h2 {
-  font-size: 20px;
-  margin: 32px 0 8px;
-}
-
-p,
-li {
-  color: var(--text);
-  font-size: 16px;
-}
-
-.muted {
-  color: var(--secondary);
-}
-
-ul.principles {
-  padding-left: 0;
-  list-style: none;
-}
-
-ul.principles li {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-}
-
-.buttons {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 28px 0;
-}
-
-.btn {
-  display: inline-block;
-  background: var(--accent);
-  color: #f2f7f5;
-  border-radius: 14px;
-  padding: 12px 20px;
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(2.6rem, 1.4rem + 5.2vw, 5.75rem);
+  line-height: 1.02;
   font-weight: 600;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--text);
+}
+
+.lead {
+  margin: 0;
+  max-width: 36ch;
+  font-size: clamp(18px, 1rem + 0.35vw, 21px);
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.button {
+  display: inline-block;
+  margin-top: clamp(32px, 4vw, 48px);
+  padding: 15px 26px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 17px;
   text-decoration: none;
 }
+.button:hover { background: var(--text); }
+.button:focus-visible,
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
 
-.btn.soon {
-  opacity: 0.55;
-  cursor: default;
-}
-
-button.btn {
-  border: 0;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-}
-
-button.btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px 16px;
-  margin: 0 0 28px;
-}
-
-.card h2 {
-  margin-top: 0;
-}
-
-form label {
-  display: block;
-  font-size: 15px;
-  font-weight: 600;
-  margin: 16px 0 6px;
-}
-
-.req {
-  color: var(--accent);
-  font-weight: 400;
-  font-size: 13px;
-}
-
-form input {
-  width: 100%;
-  min-height: 46px;
-  padding: 10px 14px;
-  font: inherit;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-}
-
-form input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-form .btn {
-  margin-top: 20px;
-}
-
-/* honeypot: off-screen, never display:none */
-.hp {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-.error {
-  color: #b4453a;
+/* Official addresses: a quiet table, hairlines only. */
+.addresses h2 {
+  margin: 0 0 12px;
   font-size: 14px;
-  margin: 12px 0 0;
+  font-weight: 500;
+  color: var(--muted);
 }
-
-.thanks {
-  background: #dff0f1;
-  border-radius: 14px;
-  padding: 14px 16px;
+.addresses dl { margin: 0; border-top: 1px solid var(--line); }
+.addresses dl > div {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.addresses dt { color: var(--muted); font-size: 15px; }
+.addresses dd {
   margin: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.addresses a { color: var(--text); text-decoration: none; }
+.addresses a:hover { color: var(--accent); }
+/* Narrow screens: label above value, so no address breaks mid-string. */
+@media (max-width: 520px) {
+  .addresses dl > div { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 12px 0; }
+  .addresses dt { font-size: 14px; }
 }
 
-a {
-  color: var(--accent);
+/* Footer: the one safety line. */
+.foot {
+  padding: 8px 0 clamp(28px, 4vw, 48px);
 }
-
-footer {
-  max-width: 660px;
-  margin: 0 auto;
-  padding: 24px 20px 48px;
-  color: var(--secondary);
-  font-size: 14px;
-  border-top: 1px solid var(--border);
+@media (min-width: 960px) {
+  .foot { padding-top: 28px; border-top: 1px solid var(--line); }
+}
+.foot p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--muted);
 }

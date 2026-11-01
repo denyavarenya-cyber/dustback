@@ -1,40 +1,42 @@
 # Merge order: wallet cleanup, swaps, /check page, /check bot
 
-Updated 1 November 2026. One list for every branch and pull request of this
-work, across four repositories. Each PR description points here and repeats its
-own line. Everything is a draft; the owner merges.
+Updated 1 November 2026, Release 1. One list for every branch and pull request of this
+work, across five repositories. Each PR description points here and repeats its own line.
+Everything is a draft; the owner merges. Done means live for users, so the owner steps
+that make a merge live are listed below the merges.
 
 ## Order
 
 | # | Repository | PR / branch | Into | Depends on | Notes |
 |---|---|---|---|---|---|
-| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.4` | | owner: "collaborator added" | Not on GitHub yet. Until the tags are there, `npm ci` fails on Noventia_app #6. |
-| 2 | dustback | `agent2/cleanup-core` | `master` | 1 | `packages/cleanup-core` 0.1.4, audit, fees, Phantom pack, e2e kit, this file. |
+| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.5` | | owner: "collaborator added" | Not on GitHub yet. Until the tags are there, `npm ci` fails on Noventia_app #6 and #15. |
+| 2 | dustback | `agent2/cleanup-core` | `master` | 1 | `packages/cleanup-core` 0.1.5 (retries on 429, never sends twice), docs (mainnet readiness, first mainnet cleanup, Phantom pack, devnet evidence), e2e kits, this file. |
 | 3 | dustback | `agent2/site` | `master` | 1; the page deployed (owner: "wrangler logged in") | Merge after the deploy, so `master` is what is live. Independent of 2. |
-| 4 | Noventia_app | #5 `feat/cleanup-deps` | `v5/foundation` | none | Solana packages only. Agent 1's #11 already contains it, so #5 goes first. |
-| 5 | Noventia_app | #7 `feat/one-dark-theme` (agent 1) | `v5/foundation` | none | The theme. |
-| 6 | Noventia_app | #10 `feat/plex-fonts` | `feat/one-dark-theme` | 5 | IBM Plex in the theme. Merge into #7 before #7 merges, or retarget to `v5/foundation` after. |
-| 7 | Noventia_app | #6 `feat/cleanup` | `feat/plex-fonts` | 1, 4, 6 | Cleanup screens on the theme, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.4`. Retarget to `v5/foundation` once #10 and #7 are in. |
-| 8 | noventia-app | #4 `agent2/check` | `main` | none | `/check` page in mock mode on `@noventia/core-api` v1.0.0 (public). No menu link until it reads the real core. |
-| 9 | noventia-check-bot | #1 `agent2/check-bot` | `main` | none to merge | Deploy waits for the core staging (`docs/DEPLOY.md`). |
-
-Agent 1's #9 (passport) and #11 (wallet sign-in) also sit on #7. #6 and #11 meet
-only in `package.json`, the lock file, and one line each in `MainNavigator.js`
-and `SettingsScreen.js`; whichever merges second rebases.
+| 4 | Noventia_app | #10 `feat/plex-fonts` | `v5/foundation` | none (#7 theme and #5 Solana packages are merged) | IBM Plex. |
+| 5 | Noventia_app | #6 `feat/cleanup` | `feat/plex-fonts`, retarget to `v5/foundation` after 4 | 1, 4 | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.5`. |
+| 6 | Noventia_app | agent 1: #9, #11, #12, #13, #14 | their bases | agent 1's order | Passport, wallet sign-in, web app, release 1. |
+| 7 | Noventia_app | #15 `feat/cleanup-in-passport` | `feat/release-1` | 5, 6 | Two lines in the passport's Found card: the way into cleanup. Shows only those lines once 5 is in the release branch. |
+| 8 | poe-engine | agent 3: #25 `core/free-plan` | `main` | agent 3's order | Core contract 1.1.0: `busy_today`, real `Retry-After`, CORS for noventia.app, `notices[]` with look-alike dust, cache `stale`. Then the owner tags `noventia-core-api` v1.1.0. |
+| 9 | noventia-app | #4 `agent2/check` | `main` | none to merge | `/check` on the real core, limits in plain words, menu flag, look-alike dust, smoke test, `docs/RELEASE_1_CHECKS.md`. Works on core 1.0.0; the full limits need core 1.1.0 live (8). |
+| 10 | noventia-check-bot | #1 `agent2/check-bot` | `main` | none to merge | The bot's share of the core's credits, the same limits and notices. Deploy after the core is live. |
+| 11 | noventia-app | #6 `agent2/assetlinks` | `main` | none | Owner steps for the Play signing key fingerprint and a format check. |
 
 ## Pinned versions
 
-* Noventia_app #6: `@noventia/cleanup-core` `github:noventiaproject-ops/dustback#cleanup-core-v0.1.4`
-  (commit `421ac7b`). If the repo stays under `denyavarenya-cyber`, the pin moves to
-  that address in the same PR.
-* noventia-app #4: `@noventia/core-api` `github:noventiaproject-ops/noventia-core-api#v1.0.0`.
+* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:noventiaproject-ops/dustback#cleanup-core-v0.1.5`
+  (commit `06108d2`). If the repo stays under `denyavarenya-cyber`, the pin moves to that
+  address in the same PRs.
+* noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.0.0`; move to `#v1.1.0`
+  once it is tagged (both already read the 1.1.0 fields).
 
-## Owner steps that are not merges
+## Owner steps that make it live
 
 | When | Step | Where it is written |
 |---|---|---|
-| Any time | `npx wrangler login`, then tell the agent "wrangler logged in": assetlinks hotfix, then the page | `dustback-hotfix/OWNER_STEPS.md`, `docs/SITE_DEPLOY.md` (branch `agent2/site`) |
-| Any time | Add `noventiaproject-ops` as collaborator, tell the agent "collaborator added" | step 1 above |
-| During a run | 0.1 devnet SOL to the address the run prints, from faucet.solana.com | `docs/E2E_DEVNET.md` |
-| A week after the page is live | Phantom review form | `docs/PHANTOM_REVIEW.md` |
-| After the core staging | `NEXT_PUBLIC_CORE_API_URL` on Vercel, bot on Railway | noventia-app `docs/CHECK.md`, noventia-check-bot `docs/DEPLOY.md` |
+| Any time | `npx wrangler login`, then "wrangler logged in": assetlinks hotfix, then the dustback.app page | `dustback-hotfix/OWNER_STEPS.md`, `docs/SITE_DEPLOY.md` (branch `agent2/site`) |
+| Any time | Add `noventiaproject-ops` as collaborator, then "collaborator added" | step 1 above |
+| Core live (8) | Smoke test, `NEXT_PUBLIC_CORE_API_URL`, then `NEXT_PUBLIC_CHECK_IN_MENU=1` on Vercel; the bot on Railway | noventia-app `docs/RELEASE_1_CHECKS.md`, noventia-check-bot `docs/DEPLOY.md` |
+| After 5 and 7 | `EXPO_PUBLIC_FEATURE_CLEANUP=1` on the app builds (devnet until the next row) | Noventia_app `src/features/cleanup/README.md` |
+| When ready for mainnet | Fee wallet in Phantom, written yes, the five variables, one cleanup of own dust | `docs/FIRST_MAINNET_CLEANUP.md` |
+| A week after the dustback.app page is live | Phantom review form | `docs/PHANTOM_REVIEW.md` |
+| Any time | Play app signing key fingerprint | noventia-app `docs/ASSETLINKS.md` (11) |

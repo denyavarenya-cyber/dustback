@@ -1,0 +1,6 @@
+{
+  "name": "noventia-cleanup-web-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "main": "index.js"
+}

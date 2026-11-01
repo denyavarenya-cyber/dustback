@@ -39,9 +39,17 @@ export function wasSent(signature: string): boolean {
   return sent.has(signature);
 }
 
-/** A node that answered with a JSON-RPC error refused the transaction; anything else (timeout, 5xx, no answer) is unknown. */
+/**
+ * Refused before anything reached the chain: a JSON-RPC error from the node, too many
+ * requests, the core's daily limit, or the core's relay refusing with a 4xx and a code.
+ * Anything else (timeout, 5xx, no answer) is unknown.
+ */
 function nodeRefused(e: unknown): boolean {
-  return e instanceof CleanupError && (e.code === 'RATE_LIMITED' || (e.code === 'RPC_ERROR' && isRpcErrorBody(e.details)));
+  if (!(e instanceof CleanupError)) return false;
+  if (e.code === 'RATE_LIMITED' || e.code === 'BUSY_TODAY') return true;
+  if (e.code !== 'RPC_ERROR') return false;
+  const d = e.details as { refused?: unknown } | undefined;
+  return isRpcErrorBody(e.details) || d?.refused === true;
 }
 
 /** A JSON-RPC error object from the node's answer (not a thrown Error such as an abort). */

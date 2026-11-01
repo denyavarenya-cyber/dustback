@@ -1,6 +1,6 @@
 {
   "name": "@noventia/cleanup-core",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Wallet cleanup and swap planning for Noventia: scan, classify, build unsigned transactions, simulate. No keys, no signing, no UI.",
   "license": "MIT",
   "private": true,

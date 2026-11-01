@@ -27,6 +27,7 @@ export {
 } from './config';
 export { CleanupError, type CleanupErrorCode, isCleanupError } from './errors';
 export {
+  createCoreRpcTransport,
   createHttpTransport,
   type HttpTransportOptions,
   type LatestBlockhash,

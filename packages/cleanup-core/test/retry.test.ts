@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { planCleanup } from '../src/cleanup';
 import { GENESIS_HASH } from '../src/constants';
 import { isCleanupError } from '../src/errors';
-import { createHttpTransport, RETRY_DEFAULTS } from '../src/rpc';
+import { createCoreRpcTransport, createHttpTransport, RETRY_DEFAULTS } from '../src/rpc';
 import { submitSignedTransaction, wasSent } from '../src/submit';
 import { BLOCKHASH, NOW, scanFixture, testConfig } from './helpers';
 
@@ -11,10 +11,10 @@ import { BLOCKHASH, NOW, scanFixture, testConfig } from './helpers';
 type Answer = { status: number; body?: unknown; retryAfter?: string } | 'network' | 'timeout';
 
 function fakeNode(script: Record<string, Answer[]>) {
-  const calls: { method: string; params: unknown[] }[] = [];
-  const fetchImpl = (async (_url: string, init: { body: string }) => {
+  const calls: { method: string; params: unknown[]; url: string }[] = [];
+  const fetchImpl = (async (url: string, init: { body: string }) => {
     const { method, params, id } = JSON.parse(init.body) as { method: string; params: unknown[]; id: number };
-    calls.push({ method, params });
+    calls.push({ method, params, url });
     const queue = script[method] ?? [];
     const next = queue.length > 1 ? queue.shift() : queue[0];
     if (next === undefined) throw new Error(`no answer scripted for ${method}`);
@@ -160,5 +160,93 @@ describe('sending: never the same transaction twice', () => {
     expect(e.code).toBe('RATE_LIMITED');
     expect(e.message).toBe('The network is busy and the transaction was not sent. Nothing left your wallet. Try again in a minute.');
     expect(wasSent(s2.sig)).toBe(false);
+  });
+});
+
+describe('the cleanup RPC through the core relay', () => {
+  const core = (node: ReturnType<typeof fakeNode>, url = 'https://core.noventia.example') =>
+    createCoreRpcTransport(url, { fetchImpl: node.fetchImpl, retry: { random: () => 1, sleep: async () => {} } });
+  const refusal = (status: number, code: string): Answer => ({ status, body: { error: { code, message: code } } });
+
+  it('posts JSON-RPC to {core}/v1/rpc and returns the node answer', async () => {
+    const node = fakeNode({ getSlot: [ok(9)] });
+    expect(await core(node, 'https://core.noventia.example/')('getSlot', [])).toBe(9);
+    expect(node.calls[0]?.url).toBe('https://core.noventia.example/v1/rpc');
+  });
+
+  it('only an https core address without a path, or a local one for tests', () => {
+    for (const bad of ['http://core.example', 'https://core.example/v1', 'ftp://x', 'https://mainnet.helius-rpc.com/?api-key=x']) {
+      expect(() => createCoreRpcTransport(bad)).toThrow(/core address/);
+    }
+    expect(() => createCoreRpcTransport('http://127.0.0.1:8788')).not.toThrow();
+  });
+
+  it("busy_today stops at once with a plain message and is not retried", async () => {
+    const node = fakeNode({ getSlot: [refusal(503, 'busy_today'), ok(1)] });
+    const e = await errorOf(() => core(node)('getSlot', []));
+    expect(e.code).toBe('BUSY_TODAY');
+    expect(e.message).toBe("Cleanup has reached today's limit. Nothing was sent. Try again after 00:00 UTC.");
+    expect(node.calls).toHaveLength(1);
+  });
+
+  it('429 from the relay is retried like any 429', async () => {
+    const node = fakeNode({ getSlot: [refusal(429, 'rate_limited'), ok(3)] });
+    expect(await core(node)('getSlot', [])).toBe(3);
+    expect(node.calls).toHaveLength(2);
+  });
+
+  it('a method the relay does not allow is refused, not retried', async () => {
+    const node = fakeNode({ getProgramAccounts: [refusal(403, 'method_not_allowed')] });
+    const e = await errorOf(() => core(node)('getProgramAccounts', []));
+    expect(e.code).toBe('RPC_ERROR');
+    expect(e.message).toContain('method_not_allowed');
+    expect(node.calls).toHaveLength(1);
+  });
+
+  describe('sending through the relay', () => {
+    const lifetime = { blockhash: BLOCKHASH, lastValidBlockHeight: 1150n };
+    async function offered(): Promise<string> {
+      const scan = await scanFixture('wallet-many-empty.json');
+      const close = scan.accounts.filter((a) => a.closable).map((a) => a.address).slice(0, 2);
+      const [tx] = planCleanup({ scan, selection: { close }, config: testConfig(), platform: 'web', lifetime, now: NOW });
+      return tx?.base64 as string;
+    }
+    function signed(b64: string, filler: number) {
+      const bytes = Buffer.from(b64, 'base64');
+      bytes.fill(filler, 1, 65);
+      return { tx: bytes.toString('base64'), sig: getBase58Decoder().decode(new Uint8Array(64).fill(filler)) };
+    }
+    const genesis = ok(GENESIS_HASH.devnet);
+
+    it('a refusal by the relay (busy_today, a 4xx with a code) leaves the transaction free to send later', async () => {
+      const unsigned = await offered();
+      for (const [answer, filler, code] of [[refusal(503, 'busy_today'), 0x31, 'BUSY_TODAY'], [refusal(403, 'method_not_allowed'), 0x32, 'RPC_ERROR']] as [Answer, number, string][]) {
+        const s = signed(unsigned, filler);
+        const node = fakeNode({ getGenesisHash: [genesis], sendTransaction: [answer] });
+        const e = await errorOf(() => submitSignedTransaction({ rpc: core(node), config: testConfig(), offered: unsigned, signed: s.tx }));
+        expect(e.code).toBe(code);
+        expect(wasSent(s.sig)).toBe(false);
+      }
+    });
+
+    it('busy_today on send says the transaction was not sent', async () => {
+      const unsigned = await offered();
+      const s = signed(unsigned, 0x33);
+      const node = fakeNode({ getGenesisHash: [genesis], sendTransaction: [refusal(503, 'busy_today')] });
+      const e = await errorOf(() => submitSignedTransaction({ rpc: core(node), config: testConfig(), offered: unsigned, signed: s.tx }));
+      expect(e.message).toBe("Cleanup has reached today's limit, so the transaction was not sent. Nothing left your wallet. Try again after 00:00 UTC.");
+    });
+
+    it('a 502 or 504 from the relay may have been forwarded: never sent again', async () => {
+      const unsigned = await offered();
+      for (const [answer, filler] of [[refusal(502, 'source_unavailable'), 0x34], [{ status: 504 }, 0x35]] as [Answer, number][]) {
+        const s = signed(unsigned, filler);
+        const node = fakeNode({ getGenesisHash: [genesis], sendTransaction: [answer, ok(s.sig)] });
+        const rpc = core(node);
+        expect((await errorOf(() => submitSignedTransaction({ rpc, config: testConfig(), offered: unsigned, signed: s.tx }))).code).toBe('RPC_ERROR');
+        expect(wasSent(s.sig)).toBe(true);
+        expect((await errorOf(() => submitSignedTransaction({ rpc, config: testConfig(), offered: unsigned, signed: s.tx }))).code).toBe('ALREADY_SENT');
+      }
+    });
   });
 });

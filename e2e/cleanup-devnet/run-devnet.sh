@@ -38,7 +38,7 @@ FEE=$(grep -o "fee=[1-9A-HJ-NP-Za-km-z]*" "$OUT/bridge.log" | head -1 | cut -d= 
 echo "bridge ready, fee wallet $FEE"
 
 (cd "$HERE" && EXPO_PUBLIC_FEATURE_CLEANUP=1 EXPO_PUBLIC_FEE_WALLET="$FEE" \
-  EXPO_PUBLIC_CLEANUP_RPC_URL=http://127.0.0.1:8799/rpc CI=1 EXPO_NO_TELEMETRY=1 \
+  EXPO_PUBLIC_CLEANUP_DEVNET_RPC_URL=http://127.0.0.1:8799/rpc CI=1 EXPO_NO_TELEMETRY=1 \
   node ../node_modules/expo/bin/cli start --port 8090 --localhost --clear --go > "$OUT/metro.log" 2>&1) &
 METRO=$!
 

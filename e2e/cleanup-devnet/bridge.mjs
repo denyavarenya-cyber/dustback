@@ -9,7 +9,7 @@
 //
 // The public devnet RPC answers 429 when it is busy. Every request from this
 // process is retried with a growing pause, and the app's own RPC requests go
-// through POST /rpc here for the same reason (EXPO_PUBLIC_CLEANUP_RPC_URL).
+// through POST /rpc here for the same reason (EXPO_PUBLIC_CLEANUP_DEVNET_RPC_URL).
 // Once the address is funded the process does not exit on an error: the setup
 // stops, says so, and resumes from where it stopped on POST /setup.
 import http from 'node:http';

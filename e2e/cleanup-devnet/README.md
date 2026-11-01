@@ -21,7 +21,7 @@ the app's code and @noventia/cleanup-core.
 
 The public devnet RPC answers 429 when busy. The bridge retries its own
 requests with a growing pause, and the app's RPC goes through the bridge's
-`POST /rpc` (`EXPO_PUBLIC_CLEANUP_RPC_URL=http://127.0.0.1:8799/rpc`), which
+`POST /rpc` (`EXPO_PUBLIC_CLEANUP_DEVNET_RPC_URL=http://127.0.0.1:8799/rpc`), which
 passes each request to devnet unchanged and retries on 429. The chain is still
 the only source for the checks. Once the address is funded the bridge does not
 exit on an error: the setup stops, says `SETUP STOPPED`, and `POST /setup`

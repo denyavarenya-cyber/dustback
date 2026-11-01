@@ -18,7 +18,7 @@ transaction goes to the stand-in, never to a cluster.
    `../cleanup-devnet` as `.e2e/`; `npm ci` in the checkout.
 2. `node .e2e/mock-devnet.mjs` (RPC on 8798, wallet on 8799; it prints `fee=`).
 3. `node .e2e-web/cors-proxy.mjs` (8797, lets the browser reach both).
-4. In `.e2e-web`: `EXPO_PUBLIC_FEATURE_CLEANUP=1 EXPO_PUBLIC_FEE_WALLET=<fee=> EXPO_PUBLIC_CLEANUP_RPC_URL=http://127.0.0.1:8797/rpc CI=1 node ../node_modules/expo/bin/cli start --web --port 8095 --localhost`
+4. In `.e2e-web`: `EXPO_PUBLIC_FEATURE_CLEANUP=1 EXPO_PUBLIC_FEE_WALLET=<fee=> EXPO_PUBLIC_CLEANUP_DEVNET_RPC_URL=http://127.0.0.1:8797/rpc CI=1 node ../node_modules/expo/bin/cli start --web --port 8095 --localhost`
 5. `OUT=shots node run.mjs`: the passport block, connect, select, confirm, result,
    with the screen text and how many signatures the wallet was asked for.
 

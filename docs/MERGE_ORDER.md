@@ -14,8 +14,8 @@ that make a merge live are listed below the merges.
 | 3 | dustback | `agent2/site` | `master` | 1; the page deployed (owner: "wrangler logged in") | Merge after the deploy, so `master` is what is live. Independent of 2. |
 | 4 | Noventia_app | #10 `feat/plex-fonts` | `v5/foundation` | | **Merged 1 November.** IBM Plex. |
 | 5 | Noventia_app | #6 `feat/cleanup` | `v5/foundation` (retargeted after 4) | 1 | Cleanup screens, network switches, `FoundCleanupLink`, swap confirm screen in mock mode. Pins `cleanup-core-v0.1.5`. |
-| 6 | Noventia_app | agent 1: #9 (merged 1 November), #11, #12, #13, #14 | their bases | agent 1's order | Passport, wallet sign-in, web app, release 1. |
-| 7 | Noventia_app | #15 `feat/cleanup-in-passport` | `feat/release-1` | 5, 6 | Two lines in the passport's Found card: the way into cleanup. Shows only those lines once 5 is in the release branch. |
+| 6 | Noventia_app | agent 1: #9, #11, #12, #13, #14 | `v5/foundation` | | #9, #13 and #14 merged 1 November (agent 1). Passport, wallet sign-in, web app, release 1. |
+| 7 | Noventia_app | #15 `feat/cleanup-in-passport` | `v5/foundation` (retargeted by agent 1) | 1, 5 | Two lines in the passport's Found card: the way into cleanup. Blocked like 5 until the DustBack tag is on GitHub; then agent 1 merges v5/foundation into it, runs the checks and merges. |
 | 8 | poe-engine | agent 3: #25 `core/free-plan` | `main` | agent 3's order | Core contract 1.1.0: `busy_today`, real `Retry-After`, CORS for noventia.app, `notices[]` with look-alike dust, cache `stale`. Then the owner tags `noventia-core-api` v1.1.0. |
 | 9 | noventia-app | #4 `agent2/check` | `main` | none to merge | `/check` on the real core, limits in plain words, menu flag, look-alike dust, smoke test, `docs/RELEASE_1_CHECKS.md`. Works on core 1.0.0; the full limits need core 1.1.0 live (8). |
 | 10 | noventia-check-bot | #1 `agent2/check-bot` | `main` | none to merge | The bot's share of the core's credits, the same limits and notices. Deploy after the core is live. |

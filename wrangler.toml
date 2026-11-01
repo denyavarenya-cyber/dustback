@@ -2,7 +2,7 @@
 # www.dustback.app. Deploys are owner actions (docs/SITE_DEPLOY.md).
 name = "dustback"
 # Keep the live Worker's date; see docs/SITE_DEPLOY.md step 3.
-compatibility_date = "FILL_IN_FROM_LIVE_WORKER"
+compatibility_date = "2026-09-02"
 
 [assets]
 directory = "./site"

@@ -1,13 +1,13 @@
 # Phantom: огляд домену dustback.app, готово до подання
 
-Для власника. Станом на 1 листопада 2026. Форму подає власник; агент нічого не подає.
+Для власника. Станом на 1 листопада 2026, сторінка жива. Форму подає власник; агент нічого не подає.
 
 **Коли:** через тиждень після того, як нова сторінка запрацює на dustback.app.
 Phantom пише, що попередження про новий або змінений домен часто зникає саме, і
 просить звертатися, якщо воно тримається довше тижня.
 
-* Сторінка запрацювала: `<дата деплою>` (агент впише в день деплою)
-* Подати не раніше: `<дата деплою + 7 днів>`
+* Сторінка запрацювала: **1 листопада 2026**, близько 16:20 UTC (Worker `dustback`, версія `37e6ecbc`)
+* Подати не раніше: **8 листопада 2026**
 
 ## Перед поданням (5 хвилин)
 
@@ -20,7 +20,7 @@ Phantom пише, що попередження про новий або змі�
 
 ```
 curl -s https://dustback.app/.well-known/assetlinks.json | grep -c "FA:C6"
-# 0  (debug ключ прибрано; сьогодні тут ще 1, це гарячий фікс, що чекає на wrangler)
+# 0  (debug ключ прибрано 1 листопада, версія 82b7db20)
 
 curl -sI https://dustback.app/ | grep -i "content-security-policy\|strict-transport\|x-frame-options"
 # три рядки
@@ -45,7 +45,7 @@ DustBack (now part of Noventia)
 ```
 dustback.app was the website of DustBack, an app that closed empty Solana token accounts and returned their rent to the owner. DustBack is retired and is now part of Noventia.
 
-Since <date the page went live> the domain serves one static page. It says DustBack is now part of Noventia, links to https://noventia.app and lists the official addresses. The page has no wallet connection, no forms and no scripts, loads nothing from other sites, and asks for nothing.
+Since 1 November 2026 the domain serves one static page. It says DustBack is now part of Noventia, links to https://noventia.app and lists the official addresses. The page has no wallet connection, no forms and no scripts, loads nothing from other sites, and asks for nothing.
 
 Wallet cleanup now lives in the Noventia app. There, every transaction is built for the user, simulated before the wallet opens, and signed in the user's own wallet; the Noventia fee is a separate instruction inside the same transaction and its amount is shown before signing.
 ```
@@ -93,7 +93,7 @@ https://github.com/denyavarenya-cyber/dustback (public; the page is in the site 
 
 **11. Any additional information** (необов'язкове)
 ```
-What changed on dustback.app on <date the page went live>:
+What changed on dustback.app on 1 November 2026:
 - The old site was replaced by one static page (55 words) that points to https://noventia.app.
 - /.well-known/assetlinks.json no longer lists the public Android debug certificate (FA:C6:17:45:...:3B:9C). Only the two release certificates of the retired app.dustback Android app remain.
 - Strict headers on every response: Content-Security-Policy default-src 'none' (styles, fonts and images from the same origin only, form-action 'none', frame-ancestors 'none'), Strict-Transport-Security, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy no-referrer, Permissions-Policy, Cross-Origin-Opener-Policy and Cross-Origin-Resource-Policy same-origin.
@@ -118,16 +118,19 @@ If the warning is about something else, please tell us what you see and we will 
 
 ## Знімки
 
-Сторінка в тому вигляді, що власник затвердив 31 жовтня (локальна збірка до деплою;
-знімки з живого сайту агент додасть як `live-*.png` у день деплою):
+Живий сайт 1 листопада 2026 (`live-*.png`), поруч локальна збірка, яку власник затвердив
+31 жовтня. На всіх ширинах 55 слів, без горизонтальної прокрутки, без запитів на інші сайти.
+
+`www.dustback.app` не має DNS-запису (NXDOMAIN), так було й до деплою. Якщо Phantom
+перевіряє і www, власнику треба додати його як домен Worker `dustback` у Cloudflare.
 
 | Ширина | Файл |
 |---|---|
-| 360 px | [phantom-review/page-360.png](phantom-review/page-360.png) |
-| 390 px | [phantom-review/page-390.png](phantom-review/page-390.png) |
-| 768 px | [phantom-review/page-768.png](phantom-review/page-768.png) |
-| 1440 px | [phantom-review/page-1440.png](phantom-review/page-1440.png) |
-| 404, 390 px | [phantom-review/404-390.png](phantom-review/404-390.png) |
+| 360 px | [phantom-review/live-360.png](phantom-review/live-360.png) (затверджено: [page-360.png](phantom-review/page-360.png)) |
+| 390 px | [phantom-review/live-390.png](phantom-review/live-390.png) (затверджено: [page-390.png](phantom-review/page-390.png)) |
+| 768 px | [phantom-review/live-768.png](phantom-review/live-768.png) (затверджено: [page-768.png](phantom-review/page-768.png)) |
+| 1440 px | [phantom-review/live-1440.png](phantom-review/live-1440.png) (затверджено: [page-1440.png](phantom-review/page-1440.png)) |
+| 404, 390 px | [phantom-review/live-404-390.png](phantom-review/live-404-390.png) (затверджено: [404-390.png](phantom-review/404-390.png)) |
 
 Знімок самого попередження Phantom робить власник (крок 2 вище).
 

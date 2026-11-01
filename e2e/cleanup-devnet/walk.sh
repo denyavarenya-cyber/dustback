@@ -6,10 +6,12 @@ OUT="$1"; mkdir -p "$OUT"
 B="http://127.0.0.1:8090/index.bundle?platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
 until curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8090/status | grep -q 200; do sleep 2; done
 curl -s -o /dev/null "$B"   # warm the bundle so the first load does not block the app
-$ADB shell am force-stop host.exp.exponent
-$ADB shell am start -W -a android.intent.action.VIEW -d "exp://127.0.0.1:8090" host.exp.exponent >/dev/null
 wait_for() { for i in $(seq 1 60); do texts | grep -q "$1" && return 0; sleep 2; done; echo "timeout waiting for: $1"; texts > "$OUT/timeout.txt"; return 1; }
-wait_for "Connect devnet test wallet"
+launch() { $ADB shell am start -W -a android.intent.action.VIEW -d "exp://127.0.0.1:8090" host.exp.exponent >/dev/null; }
+$ADB shell am force-stop host.exp.exponent
+launch
+# A cold start once left Expo Go behind the launcher (1 November); open the link once more then.
+if ! wait_for "Connect devnet test wallet"; then launch; wait_for "Connect devnet test wallet"; fi
 sleep 2
 # Close the Expo Go developer menu if it opened over the screen.
 if texts | grep -q "developer menu"; then tapt "Continue" || true; sleep 2; fi

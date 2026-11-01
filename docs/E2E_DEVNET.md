@@ -2,7 +2,54 @@
 
 Стан на 1 листопада 2026.
 
-## Що вже перевірено
+## Підписаний прогін на devnet, 1 листопада: усі 15 перевірок пройшли
+
+Емулятор Android (Pixel 7, Android 15), Expo Go 54. Код застосунку без змін:
+`src/features/cleanup` з PR #6 і `@noventia/cleanup-core` 0.1.4. Підписує
+тимчасовий ключ, що жив лише в пам'яті тестового процесу (WebCrypto,
+non-extractable). Власник поповнив його адресу
+`H6QiGTLvCCJ8GipkqCtvPu4CtaPbk72yov6Dndp7FobE` на 1 devnet SOL о 10:56:59 UTC
+([транзакція](https://explorer.solana.com/tx/3bzHWYB3XcZjwaf7AZP43dx28GPskQnP9xAe4G3AAEFTEgaSMqxBQQGu9kWHrGcP6rxe2ErUW5YGEowbd6Y3NFPD?cluster=devnet)).
+
+**Транзакція застосунку** (12:01 UTC, 7 інструкцій: ліміт обчислень,
+5 × `closeAccount`, переказ комісії):
+[2T5YSYCEKzfio3eCVzxH9rjxyvnTi9LCEbVJxy5qAtjx4PdermuVuTah3tbtz8KXGAiQUQQ1aX9PGzy9EfJGy2tA](https://explorer.solana.com/tx/2T5YSYCEKzfio3eCVzxH9rjxyvnTi9LCEbVJxy5qAtjx4PdermuVuTah3tbtz8KXGAiQUQQ1aX9PGzy9EfJGy2tA?cluster=devnet)
+
+| | Екран | Ланцюг |
+|---|---|---|
+| Рента 5 рахунків (4 × 1 488 440 + 1 513 840 Token-2022) | 7 467 600 | 7 467 600 |
+| Комісія Noventia, 7 %, у тій самій транзакції | 522 732 | переказ 522 732, гаманець комісії +522 732 |
+| Мережева комісія | 5 000 | `meta.fee` 5 000 |
+| Користувач отримує | 6 939 868 | баланс власника +6 939 868 |
+
+Рента на devnet зараз нижча, ніж у локальній заміні нижче (1 488 440 замість
+2 039 280 за рахунок), тому числа інші; правило те саме.
+
+* NFT `9B96cfsnZvXHqE6hJDfbSyahcDoCxAvjSUFjRpvJTU24` не названо в транзакції, після прогону має 1 токен.
+* Заморожений рахунок `2RdXPZ1sC23RrqoHBb7N3YgkqXn6AFXbAnHpt6B8s7G3`: на екрані «Frozen by the token issuer», у транзакції його немає, після прогону він є і `frozen`.
+* Рахунок з балансом `4RJ1yhnAZZYW3CK4Afa9EipYHtkHLHQpRjF5gDkefYZf` не зачеплено (1 000 000 000 одиниць).
+* П'ять вибраних порожніх рахунків закриті. Екран результату: «Confirmed».
+
+Транзакції налаштування (тестовий гаманець, не застосунок):
+[гаманець комісії](https://explorer.solana.com/tx/55xYTUaZqPSfgP4N9hmEMnP7SDspCmP2z7f5GeTfTQqbAV8NJvit2wKZ5xBzZkZGhpeJy7GrLvgmHautYtSF4RG6?cluster=devnet),
+[порожній 1](https://explorer.solana.com/tx/DEVLyKvD3F7KvQDB1WDjvedSdXYFJvej9g5tkCHSdbycsQrcmMTz2ihkVorEJ4kuko2nXyRBpdJ1bG4TGAwPmS4?cluster=devnet),
+[порожній 2](https://explorer.solana.com/tx/3eWTeBKcJCuZwywY2h219WQVkbvw3MntYJcB1xu2ncX2zhYWPXykfEi6uyG9LygR7aU3KiZZzKBKPWyFtFJzAQvy?cluster=devnet),
+[порожній 3](https://explorer.solana.com/tx/KQyAvjEqWq3MJBowPb2MN1absDUvCKhNe72KLByuHVSXj6m2UNos5m68u4hhQfmX7pKpsqwsRXiBmTr87zMw5va?cluster=devnet),
+[порожній 4](https://explorer.solana.com/tx/2fKnUy2gCBtRou7fS8rgEHNqVMp88fGfFpona8nsLLBjLqgVhH2RzHMSteHkYr3vyKZfx9w2u2swhBBwmVMgYHEG?cluster=devnet),
+[порожній Token-2022](https://explorer.solana.com/tx/PAoXkWMLtb9hdwsQKS79cRjD4NNdVpYrxWBYNkoPqWkHNU2NUtjqPLtgRt9XkrR4B1PSW1rqhvpnCSUFATHm9oR?cluster=devnet),
+[NFT](https://explorer.solana.com/tx/5ztmhPeXPDM1TmQbpNQuQAJUNJXBkw3GhNhZBf5KkwKZryC3HSMrheh3GHzNvZ9mkVJg5VfkyxMdwPxaXGDZN2nq?cluster=devnet),
+[заморожений](https://explorer.solana.com/tx/5Tfr2C91sKoyi12euPGS2BgwzzEKFtXUmw6BdS2yfACj8CJw75f1Z4F6qQKXwsqenJY1cnkEVNGmHhFowHr4x5cU?cluster=devnet),
+[з балансом](https://explorer.solana.com/tx/3sF6xzXeFG8QYybnmGFGD2BsmNJMNyLR39BDcAvJnfuqrJUdECvVSrc6FebrGSTsP8x3gH7cirpHiFAmGX4UCkS5?cluster=devnet).
+
+Знімки чотирьох кроків: [e2e-devnet/](e2e-devnet/). Запити застосунку до
+devnet ішли через тестовий гаманець (18 запитів, жодного 429 цього разу).
+
+Перший прохід по екранах після поповнення не стартував: після примусової
+зупинки й холодного запуску Expo Go лишився на домашньому екрані Android.
+Другий запуск відкрив застосунок, і прохід пройшов. Ключ і кошти весь цей час
+були в тестовому процесі.
+
+## Що вже перевірено до devnet
 
 **На емуляторі Android (Pixel 7, Android 15), код застосунку без змін**
 (`src/features/cleanup` з PR #6 і `@noventia/cleanup-core` 0.1.4), на новій темі.
@@ -46,10 +93,9 @@ NFT, заморожений рахунок і рахунок з балансом
 
 Окремо записано в BACKLOG: модуль у застосунку теж не повторює запит після 429.
 
-## Що чекає на devnet SOL
+## Devnet SOL для наступного прогону
 
-Підписаний прогін на devnet з підписами транзакцій. Усе готово, бракує тільки
-devnet SOL для тимчасового гаманця:
+Тимчасовому гаманцю щоразу потрібен devnet SOL, а взяти його автоматично ніде:
 
 * RPC-кран devnet закрито: `requestAirdrop` відповідає HTTP 410 «The RPC faucet
   is closed on this cluster. Request test SOL at https://faucet.solana.com».

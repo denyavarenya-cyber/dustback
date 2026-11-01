@@ -148,7 +148,8 @@ export function createHttpTransport(url: string, options: HttpTransportOptions =
   return async (method, params) => {
     for (let n = 1; ; n++) {
       const answer = await once(method, params);
-      if (!answer.busy) return answer.result;
+      // `=== false`, not `!answer.busy`: without strictNullChecks (the app's tsconfig) only this narrows.
+      if (answer.busy === false) return answer.result;
       if (answer.waitMs !== null && answer.waitMs > LONG_WAIT_MS) {
         // A limit for the hour or the day (the core relay's per-address and per-wallet limits):
         // waiting here would only hold the screen, so stop and say when.

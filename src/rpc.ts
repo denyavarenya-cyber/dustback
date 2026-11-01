@@ -18,6 +18,7 @@ export interface RetryOptions {
   /** For tests. */
   random?: () => number;
   sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
 }
 
 export interface HttpTransportOptions {
@@ -28,6 +29,21 @@ export interface HttpTransportOptions {
 }
 
 export const RETRY_DEFAULTS = { attempts: 5, baseDelayMs: 500, maxDelayMs: 8_000 } as const;
+
+/** A Retry-After longer than this is a limit for the hour or the day: stop and say when, do not wait. */
+export const LONG_WAIT_MS = 60_000;
+
+/**
+ * The core relay's refusal codes (core-api 1.2.0). Every code means the call was not
+ * forwarded, except `upstream_failed`: the relay forwarded it and the RPC did not answer,
+ * so a transaction may still have reached the network.
+ */
+export const RELAY_UPSTREAM_FAILED = 'upstream_failed';
+
+const utcTime = (ms: number): string => {
+  const d = new Date(ms);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
+};
 
 /** JSON-RPC "Too many requests" (Helius and Solana Labs nodes). */
 const RPC_TOO_MANY = -32005;
@@ -50,9 +66,10 @@ async function coreErrorCode(res: Response): Promise<string | null> {
 
 /**
  * A non-200 answer. The core's relay says why in its error body: `busy_today`
- * (cleanup's share of today's reads is used) stops with a plain message, and any
- * 4xx with a code means the relay refused before forwarding (`details.refused`),
- * so nothing reached the network. A 5xx is unknown: it may have been forwarded.
+ * (cleanup's share of today's reads is used) stops with a plain message;
+ * `upstream_failed` means forwarded with no answer, so it is unknown like a bare
+ * 5xx; any other code means the relay refused before forwarding
+ * (`details.refused`), so nothing reached the network.
  */
 async function httpError(res: Response, method: string): Promise<CleanupError> {
   const code = await coreErrorCode(res);
@@ -65,7 +82,7 @@ async function httpError(res: Response, method: string): Promise<CleanupError> {
       { method, refused: true },
     );
   }
-  const refused = code !== null && res.status < 500;
+  const refused = code !== null && code !== RELAY_UPSTREAM_FAILED;
   return new CleanupError('RPC_ERROR', `RPC answered HTTP ${res.status} to ${method}${code ? ` (${code})` : ''}`, refused ? { method, refused, code } : undefined);
 }
 
@@ -99,6 +116,7 @@ export function createHttpTransport(url: string, options: HttpTransportOptions =
   const cap = options.retry?.maxDelayMs ?? RETRY_DEFAULTS.maxDelayMs;
   const random = options.retry?.random ?? Math.random;
   const sleep = options.retry?.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const now = options.retry?.now ?? Date.now;
   let id = 0;
 
   async function once(method: string, params: readonly unknown[]): Promise<{ busy: true; waitMs: number | null } | { busy: false; result: unknown }> {
@@ -131,6 +149,18 @@ export function createHttpTransport(url: string, options: HttpTransportOptions =
     for (let n = 1; ; n++) {
       const answer = await once(method, params);
       if (!answer.busy) return answer.result;
+      if (answer.waitMs !== null && answer.waitMs > LONG_WAIT_MS) {
+        // A limit for the hour or the day (the core relay's per-address and per-wallet limits):
+        // waiting here would only hold the screen, so stop and say when.
+        const when = answer.waitMs >= 3_600_000 ? `after ${utcTime(now() + answer.waitMs)}` : `in ${Math.ceil(answer.waitMs / 60_000)} minutes`;
+        throw new CleanupError(
+          'RATE_LIMITED',
+          method === 'sendTransaction'
+            ? `The limit for now is reached, so the transaction was not sent. Nothing left your wallet. Try again ${when}.`
+            : `The limit for now is reached. Nothing was sent. Try again ${when}.`,
+          { method, attempts: n, retryAfterMs: answer.waitMs },
+        );
+      }
       if (n >= attempts) {
         throw new CleanupError(
           'RATE_LIMITED',

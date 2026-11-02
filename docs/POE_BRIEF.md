@@ -1,6 +1,6 @@
 # Noventia × Proof of Evolution: build brief
 
-Version 3.2, 17 October 2026 (3.1 earlier the same day, v3 and v2 were 16 October, v1 was 14 October). v3.2 settles the open points of the task 4 report. v3 replaced section 4 with facts from the inventory of the owner's working folder. v3.1 adds the owner's decisions on the engine skeleton report: GitHub plan limits, stage 2 card rules, fact definitions, risk rules, data sources. Owner: Denys (solo founder). This file is the single source of truth for the Proof of Evolution (PoE) work. Put it in each repo at `docs/POE_BRIEF.md` and reference it from that repo's `CLAUDE.md`.
+Version 3.2, 17 October 2026 (3.1 earlier the same day, v3 and v2 were 16 October, v1 was 14 October). v3.2 settles the open points of the task 4 report. v3 replaced section 4 with facts from the inventory of the owner's working folder. v3.1 adds the owner's decisions on the engine skeleton report: GitHub plan limits, stage 2 card rules, fact definitions, risk rules, data sources. Owner: the owner (solo founder). This file is the single source of truth for the Proof of Evolution (PoE) work. Put it in each repo at `docs/POE_BRIEF.md` and reference it from that repo's `CLAUDE.md`.
 
 ---
 

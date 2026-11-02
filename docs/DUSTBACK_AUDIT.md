@@ -18,7 +18,7 @@ logs a private key or a seed phrase, and nothing signs for a user.**
   (`src/core/wallet.ts:157`, `wallet.signAndSendTransactions`).
 * No token approval, delegate or burn instruction exists anywhere in the code.
 * The only key material near the project is the owner's own Android signing keys,
-  kept outside the repo in `%USERPROFILE%\dustback-keys` and `C:\sweeper-backup`
+  kept outside the repo, in the owner's key folder and its backup
   (see finding 1 for the one key that is a problem). They were not touched.
 
 So nothing has to be removed for key handling. The problems below are about what a
@@ -43,7 +43,7 @@ user could be asked to sign, and about trust.
   debug key, so a "release" APK can be signed with the public key without anyone
   noticing.
 * Status 31 October: wrangler on this machine is not logged in, so the agent did not
-  deploy. `C:\Noventia\dustback-hotfix` holds the six live files byte for byte with only
+  deploy. A local hotfix folder outside the repo (`dustback-hotfix`) holds the six live files byte for byte with only
   that line removed, plus `OWNER_STEPS.md` (versions upload, then versions deploy; the
   domains are not touched).
 * Fix (owner action, it is a production deploy): remove the `FA:C6` line from the live

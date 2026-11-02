@@ -46,7 +46,7 @@ without it landing.
 1. Copy this folder into a Noventia_app checkout of `feat/cleanup` as `.e2e/`
    (add `.e2e/` to `.git/info/exclude`) and `npm ci` there. Until this repo is
    on GitHub, `npm ci` needs git told to read it locally, for example
-   `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.file:///C:/Noventia/dustback/.insteadOf
+   `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.file:///<path to your DustBack clone>/.insteadOf
    GIT_CONFIG_VALUE_0=ssh://git@github.com/noventiaproject-ops/dustback.git`.
 2. Boot the emulator; install Expo Go for SDK 54 (the version comes from
    `https://api.expo.dev/v2/versions/latest`, `sdkVersions["54.0.0"]`).

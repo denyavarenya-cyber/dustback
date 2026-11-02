@@ -24,10 +24,10 @@ Worker `dustback` у Cloudflare.
 
 ## Деплой
 
-Спочатку виконати `C:\Noventia\dustback-hotfix\OWNER_STEPS.md` (debug ключ), якщо ще ні.
+Спочатку виконати `OWNER_STEPS.md` з локальної теки `dustback-hotfix` (debug ключ), якщо ще ні.
 Ті самі кроки, тільки з цієї гілки:
 
-1. `cd C:\Noventia\worktrees\dustback-site` і `node scripts/check-site.mjs`
+1. `cd` у робочу копію гілки `agent2/site` і `node scripts/check-site.mjs`
    (має бути `site check passed`).
 2. `npx wrangler@4.131.2 login` (якщо вийшли після hotfix).
 3. У `wrangler.toml` замість `FILL_IN_FROM_LIVE_WORKER` вписати дату з

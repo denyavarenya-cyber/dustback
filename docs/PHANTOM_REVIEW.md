@@ -82,12 +82,8 @@ X: https://x.com/NoventiaHq
 Discord: https://discord.com/invite/5HaTQHW2Es
 ```
 
-**9. Repository Links** (необов'язкове)
-```
-https://github.com/denyavarenya-cyber/dustback (public; the page is in the site folder)
-```
-Якщо репозиторій уже перенесено, вставити нову адресу; стара все одно
-переадресовує на нову.
+**9. Repository Links** (необов'язкове): залишити порожнім. Репозиторій переходить в
+організацію noventiaproject-ops і стає приватним, тож посилання на нього не дає нічого.
 
 **10. Community member who can vouch** (необов'язкове): залишити порожнім.
 

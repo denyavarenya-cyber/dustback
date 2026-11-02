@@ -10,7 +10,7 @@ anything that deploys to production waits for the owner's "release 1a go" (Relea
 
 | # | Repository | PR / branch | Into | Depends on | Notes |
 |---|---|---|---|---|---|
-| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.6` | | | **Done 1 November.** The repo stays at `denyavarenya-cyber/dustback`; `noventiaproject-ops` is a collaborator. |
+| 1 | dustback | push `agent2/cleanup-core`, `agent2/site`, `release/cleanup-core`, tags `cleanup-core-v0.1.0` to `v0.1.6` | | | **Done 1 November.** The repo stays on the owner's personal GitHub account until it moves to the organization; `noventiaproject-ops` is a collaborator. |
 | 2 | dustback | #1 `agent2/cleanup-core` | `master` | | **Merged 1 November** (`08ca1c5`). `packages/cleanup-core` 0.1.6 (retries on 429, never sends twice, RPC through the core relay), docs, e2e kits, this file. |
 | 2a | dustback | #3 `agent2/cleanup-core-0.1.7` | `master` | 2 | `packages/cleanup-core` 0.1.7: passes the Noventia app's non-strict root typecheck (`answer.busy === false`); `npm run check` also runs the app's settings. Tag `cleanup-core-v0.1.7` (`145405b`) pushed 1 November. Docs: relay Origin check, staging results. |
 | 3 | dustback | #2 `agent2/site` | `master` | | **Merged 1 November** (`f68929b`). The page is live since 1 November (Worker version `37e6ecbc`, hotfix `82b7db20` first). |
@@ -26,7 +26,7 @@ anything that deploys to production waits for the owner's "release 1a go" (Relea
 
 ## Pinned versions
 
-* Noventia_app #6 and #15: `@noventia/cleanup-core` `github:denyavarenya-cyber/dustback#cleanup-core-v0.1.7`
+* Noventia_app #6 and #15: `@noventia/cleanup-core` from this repo's tag `cleanup-core-v0.1.7` (the pin changes when the repo moves to the organization)
   (commit `145405b`); the tag is readable over plain https.
 * noventia-app #4, noventia-check-bot #1: `@noventia/core-api` `#v1.1.0`. The cleanup module
   needs nothing from 1.2.1: any refusal code other than `upstream_failed` already means
